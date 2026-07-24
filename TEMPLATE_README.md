@@ -14,11 +14,12 @@ connect to. It stores the event log in Postgres, fans out live updates through
 Redis, keeps media and git objects in S3-compatible storage, and serves invite
 links over HTTPS.
 
-You reach it with the **Buzz desktop or mobile app**, not a browser. After the
-deploy finishes, the relay prints an owner key once into its deploy logs; you
-paste that into the app and you're in as administrator. Because the relay
-resolves communities by hostname, one deployment can host several separate
-workspaces — a second workspace is a DNS record, not a second bill.
+You reach it with the **Buzz desktop or mobile app**, not a browser. You become
+the administrator by making your identity in the app and pasting its public key
+when you deploy, so your private key never leaves your device (full steps
+below). Because the relay resolves communities by hostname, one deployment can
+host several separate workspaces — a second workspace is a DNS record, not a
+second bill.
 
 ## Why Deploy Buzz on Railway?
 
@@ -60,37 +61,35 @@ All three are included in this template and wired up automatically.
 
 ### After you deploy
 
-1. Wait about a minute for all four services to go green.
-2. Install the Buzz app (once) from the
-   [releases page](https://github.com/block/buzz/releases/latest) — macOS
-   `.dmg`, Windows `.exe`, Linux `.AppImage`/`.deb`.
-3. Open the **Buzz** service's deploy logs. On first boot it prints a one-click
-   connect link:
+The recommended way keeps your private key on your own device and never puts
+anything sensitive in the logs:
 
-   ```
-   buzz-boot: Your workspace is ready. Open it in the Buzz app with one
-   buzz-boot: click — no keys to paste:
-   buzz-boot:   https://<your-service>.up.railway.app/invite/…
-   ```
+1. Install the Buzz app from the
+   [releases page](https://github.com/block/buzz/releases/latest) (macOS
+   `.dmg`, Windows `.exe`, Linux `.AppImage`/`.deb`). Open it and choose
+   **Create a new identity key**. The app keeps the private part on your device.
+2. In the app, open your profile and copy your public key (it starts with
+   `npub`). This is safe to share, like an email address.
+3. When you deploy, paste that `npub` into the **RELAY_OWNER_PUBKEY** field.
+   That makes you the owner.
+4. After it deploys, copy the Buzz service's address from Railway (looks like
+   `buzz-production-xxxx.up.railway.app`). In the app, add a community and point
+   it at `wss://` plus that address. You are in, as the owner.
 
-4. Click that link. Your browser shows an **Open in Buzz** button — click it,
-   and the app opens already connected to your workspace. You're the owner.
+There is no password reset, so back up your key from the app (Settings) and
+keep it somewhere safe.
 
-**Back up your key.** Just above the link the logs print a
-`secret (sign in with this): nsec1…` line — save it in a password manager.
-That is your permanent sign-in; there is no password reset, and clearing the
-app without it locks you out. A copy is also kept on the server's volume. If
-you would rather use a Nostr identity you already own, set `RELAY_OWNER_PUBKEY`
-to its 64-character hex public key before the first deploy and no key is
-generated (in that case connect manually: choose **Use an existing key**, paste
-your key, and point the app at `wss://<your-service>.up.railway.app`).
+**Prefer not to set up the app first?** Leave `RELAY_OWNER_PUBKEY` blank and a
+key is generated for you. The Buzz service's logs print it once as a
+`secret (sign in with this): nsec1…` line. Copy it, open the app, choose **Use
+an existing key**, paste it, then connect to your server address as above.
 
 **The workspace is private.** Invite teammates with links you create from
 inside the app.
 
 **More than one workspace on the same server:** list extra hostnames in the
 `BUZZ_EXTRA_COMMUNITY_HOSTS` variable (comma-separated) and point those domains
-at the Buzz service. Each is created automatically on the next restart — up to
+at the Buzz service. Each is created automatically on the next restart, up to
 three per owner.
 
 Buzz is built by [Block, Inc.](https://github.com/block/buzz) and licensed
