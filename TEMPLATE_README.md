@@ -79,10 +79,11 @@ anything sensitive in the logs:
 There is no password reset, so back up your key from the app (Settings) and
 keep it somewhere safe.
 
-**Prefer not to set up the app first?** Leave `RELAY_OWNER_PUBKEY` blank and a
-key is generated for you. The Buzz service's logs print it once as a
-`secret (sign in with this): nsec1…` line. Copy it, open the app, choose **Use
-an existing key**, paste it, then connect to your server address as above.
+**Prefer not to set up the app first?** Type the word `generate` in the
+`RELAY_OWNER_PUBKEY` field and a key is made for you. The Buzz service's logs
+print it once as a `secret (sign in with this): nsec1…` line. Copy it, open the
+app, choose **Use an existing key**, paste it, then connect to your server
+address as above.
 
 **The workspace is private.** Invite teammates with links you create from
 inside the app.

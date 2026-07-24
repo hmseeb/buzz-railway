@@ -30,8 +30,7 @@
         "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
         "REDIS_URL": "${{Redis.REDIS_URL}}",
         "RELAY_OWNER_PUBKEY": {
-          "description": "Recommended: open the Buzz app first, create your identity, and paste the public key it shows (starts with npub). That makes you the owner and your private key never leaves your device. Leave blank instead and a key is generated for you (you will copy it from this service's logs once).",
-          "isOptional": true
+          "description": "Required. Open the Buzz app, create your identity, and paste the public key it shows (starts with npub). That makes you the owner and your private key never leaves your device. Prefer a key made for you? Type the word: generate (then copy it from this service's logs)."
         }
       },
       "volumeMounts": [
