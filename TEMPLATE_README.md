@@ -58,29 +58,40 @@ All three are included in this template and wired up automatically.
   event format and identity model Buzz is built on.
 - [Template packaging source](https://github.com/hmseeb/buzz-railway)
 
-### Implementation Details
+### After you deploy
 
-After deploying, open the **Buzz** service's logs. On first boot it prints your
-owner identity exactly once:
+1. Wait about a minute for all four services to go green.
+2. Install the Buzz app (once) from the
+   [releases page](https://github.com/block/buzz/releases/latest) — macOS
+   `.dmg`, Windows `.exe`, Linux `.AppImage`/`.deb`.
+3. Open the **Buzz** service's deploy logs. On first boot it prints a one-click
+   connect link:
 
-```
-buzz-boot: secret (sign in with this):  nsec1…
-buzz-boot: public (your identity):      npub1…
-```
+   ```
+   buzz-boot: Your workspace is ready. Open it in the Buzz app with one
+   buzz-boot: click — no keys to paste:
+   buzz-boot:   https://<your-service>.up.railway.app/invite/…
+   ```
 
-Install the app from the [Buzz releases page](https://github.com/block/buzz/releases/latest),
-choose **Use an existing key**, paste the `nsec1…` value, then give it your relay
-address, which Railway shows on the Buzz service — it looks like
-`wss://buzz-production-xxxx.up.railway.app`
+4. Click that link. Your browser shows an **Open in Buzz** button — click it,
+   and the app opens already connected to your workspace. You're the owner.
 
-Save that secret. There is no password reset — the key *is* the account. A copy
-is kept on the relay's volume, and if you would rather use a Nostr identity you
-already own, set `RELAY_OWNER_PUBKEY` to its 64-character hex public key before
-the first deploy and no key is generated.
+**Back up your key.** Just above the link the logs print a
+`secret (sign in with this): nsec1…` line — save it in a password manager.
+That is your permanent sign-in; there is no password reset, and clearing the
+app without it locks you out. A copy is also kept on the server's volume. If
+you would rather use a Nostr identity you already own, set `RELAY_OWNER_PUBKEY`
+to its 64-character hex public key before the first deploy and no key is
+generated (in that case connect manually: choose **Use an existing key**, paste
+your key, and point the app at `wss://<your-service>.up.railway.app`).
 
-To add a second workspace, point another domain at the Buzz service and call
-`POST /operator/communities` with that hostname. Your owner key is already
-authorised for this.
+**The workspace is private.** Invite teammates with links you create from
+inside the app.
+
+**More than one workspace on the same server:** list extra hostnames in the
+`BUZZ_EXTRA_COMMUNITY_HOSTS` variable (comma-separated) and point those domains
+at the Buzz service. Each is created automatically on the next restart — up to
+three per owner.
 
 Buzz is built by [Block, Inc.](https://github.com/block/buzz) and licensed
 Apache-2.0. This template only packages it for Railway.
