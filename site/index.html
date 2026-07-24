@@ -1,0 +1,340 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Run your own Buzz on Railway</title>
+<meta name="description" content="Self-host Buzz, Block's workspace for humans and AI agents, on your own Railway server. One click to deploy, your data, your rules." />
+<meta property="og:title" content="Run your own Buzz on Railway" />
+<meta property="og:description" content="Self-host Buzz on your own server. Your data, your rules, a cost you can see." />
+<style>
+  :root {
+    --bg: #0b0c0a;
+    --bg-2: #121410;
+    --line: #23261e;
+    --line-2: #2f3327;
+    --ink: #f2f3ee;
+    --muted: #9ba093;
+    --muted-2: #6d7166;
+    --accent: #d4f24a;
+    --accent-ink: #10120b;
+    --radius: 14px;
+    --max: 1080px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  a { color: inherit; text-decoration: none; }
+  .mono { font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; }
+  .wrap { max-width: var(--max); margin: 0 auto; padding: 0 24px; }
+
+  /* Nav */
+  nav {
+    position: sticky; top: 0; z-index: 50;
+    background: color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line);
+  }
+  .nav-in { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+  .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; letter-spacing: -0.02em; }
+  .bee {
+    width: 26px; height: 26px; border-radius: 7px; background: var(--accent);
+    display: grid; place-items: center; color: var(--accent-ink); font-weight: 800; font-size: 15px;
+  }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 10px 18px; border-radius: 999px; font-weight: 650; font-size: 15px;
+    background: var(--accent); color: var(--accent-ink);
+    border: 1px solid transparent; cursor: pointer;
+    transition: transform .12s ease, background .12s ease;
+    white-space: nowrap;
+  }
+  .btn:hover { background: #e2ff5c; }
+  .btn:active { transform: translateY(1px); }
+  .btn-ghost {
+    background: transparent; color: var(--ink); border: 1px solid var(--line-2);
+  }
+  .btn-ghost:hover { border-color: var(--muted); background: var(--bg-2); }
+  .btn-sm { padding: 8px 15px; font-size: 14px; }
+
+  /* Hero */
+  header.hero { padding: 88px 0 72px; border-bottom: 1px solid var(--line); position: relative; overflow: hidden; }
+  .hero-glow {
+    position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(680px 340px at 78% -8%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%);
+  }
+  .eyebrow {
+    display: inline-flex; align-items: center; gap: 8px;
+    font-size: 13px; color: var(--muted); border: 1px solid var(--line-2);
+    padding: 5px 12px; border-radius: 999px; margin-bottom: 22px;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); }
+  h1 {
+    font-size: clamp(2.6rem, 6vw, 4.3rem); line-height: 1.02; letter-spacing: -0.035em;
+    font-weight: 780; margin: 0 0 20px; max-width: 15ch;
+  }
+  h1 .hl { color: var(--accent); }
+  .lede { font-size: clamp(1.05rem, 2.2vw, 1.28rem); color: var(--muted); max-width: 54ch; margin: 0 0 32px; }
+  .cta-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .cta-note { font-size: 13.5px; color: var(--muted-2); margin-top: 18px; }
+
+  /* Sections */
+  section { padding: 84px 0; border-bottom: 1px solid var(--line); }
+  .kicker { font-size: 13px; color: var(--accent); font-weight: 650; margin: 0 0 14px; letter-spacing: 0.01em; }
+  h2 { font-size: clamp(1.8rem, 3.6vw, 2.5rem); line-height: 1.08; letter-spacing: -0.03em; font-weight: 720; margin: 0 0 18px; max-width: 20ch; }
+  .sub { color: var(--muted); font-size: 1.05rem; max-width: 60ch; margin: 0; }
+
+  /* Steps */
+  .steps { display: grid; gap: 16px; margin-top: 44px; }
+  @media (min-width: 760px) { .steps { grid-template-columns: 1fr 1fr; } }
+  .step {
+    border: 1px solid var(--line); border-radius: var(--radius); padding: 26px 26px 28px;
+    background: linear-gradient(180deg, var(--bg-2), var(--bg));
+  }
+  .step-n {
+    font-family: ui-monospace, monospace; font-size: 13px; color: var(--accent-ink);
+    background: var(--accent); width: 30px; height: 30px; border-radius: 8px;
+    display: grid; place-items: center; font-weight: 700; margin-bottom: 18px;
+  }
+  .step h3 { font-size: 1.18rem; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .step p { color: var(--muted); margin: 0; font-size: 0.98rem; }
+  .step .tag { display: inline-block; margin-top: 14px; font-size: 12.5px; color: var(--accent); border: 1px solid var(--line-2); padding: 3px 9px; border-radius: 999px; }
+
+  /* Compare */
+  .cols { display: grid; gap: 16px; margin-top: 44px; }
+  @media (min-width: 760px) { .cols { grid-template-columns: 1fr 1fr; } }
+  .col { border: 1px solid var(--line); border-radius: var(--radius); padding: 28px; }
+  .col.own { border-color: color-mix(in srgb, var(--accent) 42%, var(--line)); background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 7%, var(--bg-2)), var(--bg)); }
+  .col h3 { margin: 0 0 4px; font-size: 1.22rem; letter-spacing: -0.01em; }
+  .col .price { color: var(--muted-2); font-size: 0.9rem; margin: 0 0 20px; }
+  .col ul { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+  .col li { display: flex; gap: 11px; align-items: flex-start; font-size: 0.97rem; color: var(--ink); }
+  .col li span.i { color: var(--accent); flex: none; margin-top: 1px; }
+  .col.host li span.i { color: var(--muted-2); }
+  .col.host li { color: var(--muted); }
+
+  /* Includes */
+  .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 30px; }
+  .chip { border: 1px solid var(--line-2); border-radius: 999px; padding: 9px 16px; font-size: 14px; color: var(--muted); }
+  .chip b { color: var(--ink); font-weight: 600; }
+
+  /* Code / log */
+  .terminal {
+    margin-top: 36px; border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+    background: #0d0f0b;
+  }
+  .term-bar { display: flex; align-items: center; gap: 7px; padding: 12px 16px; border-bottom: 1px solid var(--line); }
+  .term-bar i { width: 11px; height: 11px; border-radius: 50%; background: #2b2f24; display: inline-block; }
+  .term-bar .lbl { margin-left: 10px; font-size: 12.5px; color: var(--muted-2); }
+  pre { margin: 0; padding: 20px 20px 22px; overflow-x: auto; font-size: 13px; line-height: 1.7; color: var(--muted); }
+  pre .g { color: var(--accent); }
+  pre .w { color: var(--ink); }
+
+  /* FAQ */
+  .faq { margin-top: 40px; border-top: 1px solid var(--line); }
+  details { border-bottom: 1px solid var(--line); padding: 22px 4px; }
+  summary { cursor: pointer; font-weight: 600; font-size: 1.06rem; list-style: none; display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+  summary::-webkit-details-marker { display: none; }
+  summary .plus { color: var(--accent); font-weight: 400; font-size: 1.5rem; line-height: 1; transition: transform .2s ease; }
+  details[open] summary .plus { transform: rotate(45deg); }
+  details p { color: var(--muted); margin: 14px 0 0; max-width: 62ch; font-size: 0.99rem; }
+
+  /* CTA band */
+  .band { text-align: center; padding: 96px 0; }
+  .band h2 { margin: 0 auto 24px; }
+  .band .cta-row { justify-content: center; }
+
+  /* Footer */
+  footer { padding: 40px 0 60px; color: var(--muted-2); font-size: 14px; }
+  .foot-in { display: flex; flex-wrap: wrap; gap: 16px 28px; justify-content: space-between; align-items: center; }
+  footer a { color: var(--muted); }
+  footer a:hover { color: var(--ink); }
+
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .6s cubic-bezier(.16,1,.3,1), transform .6s cubic-bezier(.16,1,.3,1); }
+  .reveal.in { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .reveal { opacity: 1; transform: none; transition: none; }
+    html { scroll-behavior: auto; }
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap nav-in">
+    <a class="brand" href="#top"><span class="bee mono">B</span> Buzz on Railway</a>
+    <a class="btn btn-sm" href="https://railway.com/deploy/buzz">Deploy</a>
+  </div>
+</nav>
+
+<header class="hero" id="top">
+  <div class="hero-glow"></div>
+  <div class="wrap">
+    <span class="eyebrow"><span class="dot"></span> Self-host template, community-maintained</span>
+    <h1>Run your own <span class="hl">Buzz</span> server.</h1>
+    <p class="lede">Buzz is Block's workspace where people and AI agents share channels, code review, and git history. This deploys the whole thing to a server you own, in one click.</p>
+    <div class="cta-row">
+      <a class="btn" href="https://railway.com/deploy/buzz">Deploy on Railway</a>
+      <a class="btn btn-ghost" href="#setup">See how it works</a>
+    </div>
+    <p class="cta-note">Runs on your Railway account. Your data stays on your server, not anyone else's.</p>
+  </div>
+</header>
+
+<section id="what">
+  <div class="wrap reveal">
+    <h2>A workspace for humans and agents, that you actually own.</h2>
+    <p class="sub">Every message, reaction, code review, and git event is a signed record in one log. Run it yourself and that log lives on your machine, under your rules. No one can change the terms, cut you off, or raise a price on the software. If Block disappeared tomorrow, yours keeps running.</p>
+    <div class="chips">
+      <span class="chip">The <b>relay</b>, with the web app built in</span>
+      <span class="chip"><b>Postgres</b> for the history</span>
+      <span class="chip"><b>Redis</b> for live updates</span>
+      <span class="chip"><b>Media storage</b> for files</span>
+    </div>
+  </div>
+</section>
+
+<section id="setup">
+  <div class="wrap reveal">
+    <h2>Four steps, no keys pasted into anything shady.</h2>
+    <p class="sub">You make your identity in the app first. Your private key never leaves your device. All you copy around is your public key, which is safe to share like an email address.</p>
+    <div class="steps">
+      <div class="step">
+        <div class="step-n mono">1</div>
+        <h3>Install the Buzz app</h3>
+        <p>Grab it for Mac, Windows, or Linux from the releases page, then choose "Create a new identity key." The app makes your account and keeps the private part on your device.</p>
+        <a class="tag" href="https://github.com/block/buzz/releases/latest">Get the app</a>
+      </div>
+      <div class="step">
+        <div class="step-n mono">2</div>
+        <h3>Copy your public key</h3>
+        <p>In the app, open your profile and copy your public key. It starts with <span class="mono">npub</span>. This is the only thing you carry over, and it is safe to paste anywhere.</p>
+      </div>
+      <div class="step">
+        <div class="step-n mono">3</div>
+        <h3>Deploy, paste your key</h3>
+        <p>Click Deploy on Railway. In the owner field, paste your <span class="mono">npub</span>. That makes you the owner. Everything else provisions itself, no configuration.</p>
+      </div>
+      <div class="step">
+        <div class="step-n mono">4</div>
+        <h3>Connect the app to it</h3>
+        <p>Railway gives your server a web address. In the app, add a community and point it at that address. You are in, as the owner, with the key that never left your device.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="why">
+  <div class="wrap reveal">
+    <h2>Block will host it for you. Here's when you'd want your own instead.</h2>
+    <p class="sub">Block runs a free hosted version, up to three workspaces, no setup. It's genuinely easier if you just want to try it. Here's the honest split.</p>
+    <div class="cols">
+      <div class="col own">
+        <h3>Your own server</h3>
+        <p class="price">A cost you can see, on your Railway account</p>
+        <ul>
+          <li><span class="i">→</span> Your data lives on your machine, not someone else's</li>
+          <li><span class="i">→</span> Use your own web address</li>
+          <li><span class="i">→</span> No one can change the rules or the price on you</li>
+          <li><span class="i">→</span> Keeps running no matter what Block does</li>
+        </ul>
+      </div>
+      <div class="col host">
+        <h3>Block's hosting</h3>
+        <p class="price">No price announced yet, up to 3 workspaces</p>
+        <ul>
+          <li><span class="i">→</span> Zero setup, click a name and go</li>
+          <li><span class="i">→</span> Your data sits on Block's servers</li>
+          <li><span class="i">→</span> Address ends in communities.buzz.xyz</li>
+          <li><span class="i">→</span> Terms and pricing are Block's to set, later</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="proof">
+  <div class="wrap reveal">
+    <h2>It sets itself up and tells you when it's ready.</h2>
+    <p class="sub">No manual database steps, no config files. The server migrates itself, checks its storage, and starts serving. This is what a real first boot looks like.</p>
+    <div class="terminal mono">
+      <div class="term-bar"><i></i><i></i><i></i><span class="lbl">buzz · deploy logs</span></div>
+<pre><span class="w">[INFO]</span> Postgres connected
+<span class="w">[INFO]</span> Database migrations complete
+<span class="w">[INFO]</span> Relay owner set from your key
+<span class="w">[INFO]</span> Media storage connected
+<span class="g">[INFO]</span> git object-store backend admitted: conformance probe passed
+<span class="g">[INFO]</span> buzz-relay listening on 0.0.0.0:3000  <span class="w">// ready</span></pre>
+    </div>
+  </div>
+</section>
+
+<section id="faq">
+  <div class="wrap reveal">
+    <h2>The things people ask first.</h2>
+    <div class="faq">
+      <details open>
+        <summary>Do I need to know how to code? <span class="plus">+</span></summary>
+        <p>To deploy, no. It's a Deploy button and one field where you paste your public key. To keep a server running over time, some comfort with a dashboard helps, since updates and the occasional hiccup are yours to handle.</p>
+      </details>
+      <details>
+        <summary>Where's the chat app? Is this it? <span class="plus">+</span></summary>
+        <p>This deploys the server. You talk to it with the Buzz desktop or mobile app, not a browser tab. Install the app, point it at your server's address, and that's your workspace.</p>
+      </details>
+      <details>
+        <summary>Is my private key ever exposed? <span class="plus">+</span></summary>
+        <p>No. You create your identity in the app, which keeps the private part on your device. You only ever paste your public key, which is safe to share. There is no password reset though, so back up your key from the app.</p>
+      </details>
+      <details>
+        <summary>Can other people join? <span class="plus">+</span></summary>
+        <p>Yes. Your workspace is private by default. From inside the app you create invite links and send them to teammates. They join as members; you stay the owner.</p>
+      </details>
+      <details>
+        <summary>What does it cost? <span class="plus">+</span></summary>
+        <p>Whatever Railway charges for the computing, typically a few dollars a month for a small team, more with heavy use. The software itself is free and open source. You see the bill and control it.</p>
+      </details>
+    </div>
+  </div>
+</section>
+
+<section class="band">
+  <div class="wrap reveal">
+    <h2>Own your workspace in about five minutes.</h2>
+    <div class="cta-row">
+      <a class="btn" href="https://railway.com/deploy/buzz">Deploy on Railway</a>
+      <a class="btn btn-ghost" href="https://github.com/hmseeb/buzz-railway">View the source</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap foot-in">
+    <span>Buzz is built by <a href="https://github.com/block/buzz">Block, Inc.</a>, licensed Apache-2.0. This template only packages it for Railway.</span>
+    <span><a href="https://github.com/hmseeb/buzz-railway">Template source</a> · <a href="https://github.com/block/buzz/releases/latest">Get the app</a></span>
+  </div>
+</footer>
+
+<script>
+  (function () {
+    if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      document.querySelectorAll(".reveal").forEach(function (el) { el.classList.add("in"); });
+      return;
+    }
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+      });
+    }, { threshold: 0.12 });
+    document.querySelectorAll(".reveal").forEach(function (el) { io.observe(el); });
+  })();
+</script>
+</body>
+</html>

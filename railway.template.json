@@ -30,7 +30,7 @@
         "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
         "REDIS_URL": "${{Redis.REDIS_URL}}",
         "RELAY_OWNER_PUBKEY": {
-          "description": "Optional. Your Nostr public key as 64 hex characters (not an npub). Leave blank and an owner keypair is generated on first boot \u2014 the secret key is printed once in this service's deploy logs.",
+          "description": "Recommended: open the Buzz app first, create your identity, and paste the public key it shows (starts with npub). That makes you the owner and your private key never leaves your device. Leave blank instead and a key is generated for you (you will copy it from this service's logs once).",
           "isOptional": true
         }
       },
