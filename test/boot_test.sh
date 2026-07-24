@@ -203,6 +203,20 @@ else
        "${decoded:0:200}"
 fi
 
+# 15. The desktop and mobile apps run from a non-web origin (tauri://localhost),
+#     so a relay whose allowed origins are locked to the public web address
+#     silently blocks every app read — the request never even leaves the app.
+#     Whenever origins are restricted, the app origins must be added, or nobody
+#     can connect with the app.
+cors=$(run_env -e "BUZZ_CORS_ORIGINS=https://relay.example.app" \
+  | grep -oE '^BUZZ_CORS_ORIGINS=.*' | cut -d= -f2)
+if [[ "$cors" == *"https://relay.example.app"* && "$cors" == *"tauri://localhost"* ]]; then
+  pass "keeps the app origins allowed even when origins are restricted"
+else
+  fail "keeps the app origins allowed even when origins are restricted" \
+       "the site origin plus tauri://localhost" "${cors:-<unset>}"
+fi
+
 echo
 if [[ $FAILED -eq 0 ]]; then
   echo "boot_test: PASS"

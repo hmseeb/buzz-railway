@@ -94,6 +94,17 @@ if [ "${BUZZ_HEALTH_PORT:-8080}" = "$app_port" ]; then
 fi
 BUZZ_HEALTH_PORT="${BUZZ_HEALTH_PORT:-8080}"
 
+# The desktop and mobile apps run from tauri://localhost, not the public web
+# address, so a relay whose allowed origins are locked to that address blocks
+# every read the app makes — the request is rejected inside the app before it
+# is ever sent, and the relay logs nothing. Always keep the app origins in the
+# list. An empty list already means "allow any origin", so only append when the
+# deployer has restricted it.
+if [ -n "${BUZZ_CORS_ORIGINS:-}" ]; then
+  BUZZ_CORS_ORIGINS="${BUZZ_CORS_ORIGINS},tauri://localhost,https://tauri.localhost,http://tauri.localhost"
+  export BUZZ_CORS_ORIGINS
+fi
+
 export RELAY_OWNER_PUBKEY BUZZ_BIND_ADDR BUZZ_HEALTH_PORT
 
 # Extra workspaces, the no-brainer path: a deployer lists community hostnames in
