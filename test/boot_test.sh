@@ -92,6 +92,24 @@ else
        "UID=1000 and a 64-hex owner pubkey" "$root_vol"
 fi
 
+# 6. A bind address with an empty port is what you get when a platform variable
+#    reference resolves to nothing. The relay rejects it and crash-loops, so the
+#    bootstrap repairs it from $PORT instead.
+bind=$(run_env -e "BUZZ_BIND_ADDR=0.0.0.0:" -e "PORT=3000" | grep -oE '^BUZZ_BIND_ADDR=.*' | cut -d= -f2)
+if [[ "$bind" == "0.0.0.0:3000" ]]; then
+  pass "repairs a bind address with an empty port from \$PORT"
+else
+  fail "repairs a bind address with an empty port from \$PORT" "0.0.0.0:3000" "${bind:-<unset>}"
+fi
+
+# 7. An explicit, well-formed bind address must survive untouched.
+kept=$(run_env -e "BUZZ_BIND_ADDR=0.0.0.0:9999" -e "PORT=3000" | grep -oE '^BUZZ_BIND_ADDR=.*' | cut -d= -f2)
+if [[ "$kept" == "0.0.0.0:9999" ]]; then
+  pass "leaves an explicit bind address alone"
+else
+  fail "leaves an explicit bind address alone" "0.0.0.0:9999" "${kept:-<unset>}"
+fi
+
 echo
 if [[ $FAILED -eq 0 ]]; then
   echo "boot_test: PASS"

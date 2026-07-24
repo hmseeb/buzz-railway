@@ -19,7 +19,7 @@
         }
       },
       "variables": {
-        "BUZZ_BIND_ADDR": "0.0.0.0:${{PORT}}",
+        "PORT": "3000",
         "BUZZ_METRICS_PORT": "9102",
         "BUZZ_AUTO_MIGRATE": "true",
         "BUZZ_RELAY_PRIVATE_KEY": "${{secret(64, 'abcdef0123456789')}}",

@@ -52,5 +52,12 @@ else
     "could not read a hex pubkey from $KEYFILE — delete it and redeploy to regenerate"
 fi
 
-export RELAY_OWNER_PUBKEY
+# The relay refuses to start on a malformed bind address, and the usual way to
+# get one is a platform variable reference that resolved to nothing, leaving
+# "0.0.0.0:" with no port. Repair it from $PORT; an explicit valid value wins.
+if [[ ! "${BUZZ_BIND_ADDR:-}" =~ :[0-9]+$ ]]; then
+  BUZZ_BIND_ADDR="0.0.0.0:${PORT:-3000}"
+fi
+
+export RELAY_OWNER_PUBKEY BUZZ_BIND_ADDR
 exec "$@"
