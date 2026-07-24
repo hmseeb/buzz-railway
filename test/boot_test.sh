@@ -185,6 +185,24 @@ else
        "$(echo "$banner" | head -12)"
 fi
 
+# 14. The community-creation helper must produce a valid signed request: a
+#     kind-27235 event whose signed URL is the public origin (not the socket),
+#     so a deployer can list extra workspaces and the relay accepts them.
+auth=$(docker run --rm -e BUZZ_PROVISION_PRINT_AUTH=1 --entrypoint buzz-provision "$IMG" \
+  fa20c1ddcd070e332a2d3fb28e72196bcd1236fbe1262ff152c6ab77ed179c9e \
+  https://relay.example.app team2.relay.example.app \
+  8bc0b8a4ffaf6916f24fc7d35201e9fb33b26912cfc8426c2ec4e764aa312828 3000 2>&1)
+decoded=$(printf '%s' "$auth" | base64 -d 2>/dev/null)
+if [[ "$decoded" == *'"kind":27235'* \
+   && "$decoded" == *'https://relay.example.app/operator/communities'* \
+   && "$decoded" == *'"method"'*'"POST"'* ]]; then
+  pass "signs a valid community-creation request against the public origin"
+else
+  fail "signs a valid community-creation request against the public origin" \
+       "kind 27235 event signing the public-origin operator URL" \
+       "${decoded:0:200}"
+fi
+
 echo
 if [[ $FAILED -eq 0 ]]; then
   echo "boot_test: PASS"

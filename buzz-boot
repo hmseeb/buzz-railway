@@ -95,4 +95,46 @@ fi
 BUZZ_HEALTH_PORT="${BUZZ_HEALTH_PORT:-8080}"
 
 export RELAY_OWNER_PUBKEY BUZZ_BIND_ADDR BUZZ_HEALTH_PORT
+
+# Extra workspaces, the no-brainer path: a deployer lists community hostnames in
+# BUZZ_EXTRA_COMMUNITY_HOSTS (comma-separated) and points those domains at this
+# service. On every boot we create any that don't exist yet — idempotent, so
+# re-listing an existing one is a no-op. This needs the owner's secret to sign
+# the request, which we only have when the key was generated here; if the
+# deployer supplied their own pubkey instead, we log and skip.
+if [ -n "${BUZZ_EXTRA_COMMUNITY_HOSTS:-}" ]; then
+  if [ -f "$KEYFILE" ]; then
+    owner_secret=$(awk '/^Secret key:/{print $3}' "$KEYFILE")
+    app_port="${BUZZ_BIND_ADDR##*:}"
+    health_port="$BUZZ_HEALTH_PORT"
+    origin="${RELAY_OPERATOR_API_ORIGIN:-}"
+    owner_pub="$RELAY_OWNER_PUBKEY"
+    hosts="$BUZZ_EXTRA_COMMUNITY_HOSTS"
+    # Detached child: waits for the relay to be ready, then creates each host.
+    # It survives the exec below because it is already a separate process.
+    (
+      for _ in $(seq 1 60); do
+        if curl -fsS "http://127.0.0.1:${health_port}/_readiness" >/dev/null 2>&1; then
+          break
+        fi
+        sleep 2
+      done
+      OLD_IFS="$IFS"; IFS=','
+      for host in $hosts; do
+        IFS="$OLD_IFS"
+        host=$(echo "$host" | tr -d '[:space:]')
+        [ -z "$host" ] && continue
+        buzz-provision "$owner_secret" "$origin" "$host" "$owner_pub" "$app_port" \
+          || echo "buzz-boot: could not create workspace '$host' (will retry next boot)"
+        IFS=','
+      done
+      IFS="$OLD_IFS"
+    ) &
+  else
+    echo "buzz-boot: BUZZ_EXTRA_COMMUNITY_HOSTS is set but the owner key was" >&2
+    echo "buzz-boot: supplied, not generated, so there is no secret here to" >&2
+    echo "buzz-boot: create them with. Create extra workspaces from your own app." >&2
+  fi
+fi
+
 exec "$@"

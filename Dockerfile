@@ -3,6 +3,13 @@
 # only :main, :latest and :sha-<7> — so a floating tag would ship whatever
 # landed on main that morning to everyone who clicks Deploy.
 #
+# Compile the community-creation helper. It signs the relay's operator request,
+# which needs a real crypto library, so it can't live in the shell boot script.
+FROM rust:1-slim-bookworm AS provisioner
+WORKDIR /build
+COPY provision/ .
+RUN cargo build --release && strip target/release/buzz-provision
+
 # digest = ghcr.io/block/buzz:main as of 2026-07-24
 FROM ghcr.io/block/buzz@sha256:380198f4106c733a1b91733be1053440ed229cca87ef0de581a787de3f43065a
 
@@ -35,6 +42,7 @@ ENV PORT=3000 \
 
 COPY --chmod=0755 buzz-boot /usr/local/bin/buzz-boot
 COPY --chmod=0755 buzz-nsec /usr/local/bin/buzz-nsec
+COPY --from=provisioner /build/target/release/buzz-provision /usr/local/bin/buzz-provision
 
 # Deliberately stays root: the entrypoint needs to chown a root-owned mounted
 # volume before it can hand off. It drops to uid 1000 via setpriv immediately
