@@ -37,13 +37,20 @@ else
 
   if [ ! -f "$KEYFILE" ]; then
     (umask 077; buzz-admin generate-key > "$KEYFILE")
+    # buzz-admin prints hex, but the desktop and mobile apps only accept bech32
+    # nsec1…, so print that form or first login is a dead end.
+    gen_pub=$(awk '/^Public key:/{print $3}' "$KEYFILE")
+    gen_sec=$(awk '/^Secret key:/{print $3}' "$KEYFILE")
     echo "buzz-boot: ============================================================"
     echo "buzz-boot: No RELAY_OWNER_PUBKEY was set, so an owner keypair was"
-    echo "buzz-boot: generated. Save the secret key now and sign in with it:"
+    echo "buzz-boot: generated. In the Buzz app choose 'Use an existing key'"
+    echo "buzz-boot: and paste the secret key below."
     echo "buzz-boot:"
-    sed 's/^/buzz-boot:   /' "$KEYFILE"
+    echo "buzz-boot:   secret (sign in with this):  $(buzz-nsec nsec "$gen_sec")"
+    echo "buzz-boot:   public (your identity):      $(buzz-nsec npub "$gen_pub")"
     echo "buzz-boot:"
-    echo "buzz-boot: This is printed once. It stays on the volume at $KEYFILE."
+    echo "buzz-boot: Save the secret now. It stays on the volume at $KEYFILE,"
+    echo "buzz-boot: and hex copies of both are in that file."
     echo "buzz-boot: ============================================================"
   fi
 
@@ -51,6 +58,15 @@ else
   [[ "$RELAY_OWNER_PUBKEY" =~ ^[0-9a-f]{64}$ ]] || die \
     "could not read a hex pubkey from $KEYFILE — delete it and redeploy to regenerate"
 fi
+
+# One deploy, many workspaces: the relay resolves communities by hostname and
+# can host several, but provisioning via POST /operator/communities is gated by
+# RELAY_OPERATOR_PUBKEYS, and an empty allowlist disables it outright. Default
+# the owner into that allowlist so a deployer can point a second hostname at the
+# same stack instead of paying for a second one. An explicit list wins, since
+# operators need not be the owner.
+RELAY_OPERATOR_PUBKEYS="${RELAY_OPERATOR_PUBKEYS:-$RELAY_OWNER_PUBKEY}"
+export RELAY_OPERATOR_PUBKEYS
 
 # The relay refuses to start on a malformed bind address, and the usual way to
 # get one is a platform variable reference that resolved to nothing, leaving

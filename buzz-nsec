@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# Encode a 64-char hex Nostr key as bech32 (NIP-19).
+#
+#   buzz-nsec nsec <64-hex-secret>
+#   buzz-nsec npub <64-hex-public>
+#
+# The Buzz desktop app only accepts nsec1… keys, while buzz-admin prints hex.
+# The runtime image has no python, xxd or bech32 tool, so this is done in shell.
+# Correctness is pinned by known-good vectors in test/boot_test.sh — a subtly
+# wrong encoder produces a plausible key that silently fails to log in.
+set -euo pipefail
+
+CHARSET=qpzry9x8gf2tvdw0s3jn54khce6mua7l
+GEN=(0x3b6a57b2 0x26508e6d 0x1ea119fa 0x3d4233dd 0x2a1462b3)
+
+usage() { echo "usage: buzz-nsec <nsec|npub> <64-hex>" >&2; exit 2; }
+[ "$#" -eq 2 ] || usage
+
+hrp="$1"
+hex="$(printf '%s' "$2" | tr 'A-F' 'a-f')"
+case "$hrp" in nsec | npub) ;; *) usage ;; esac
+if ! [[ "$hex" =~ ^[0-9a-f]{64}$ ]]; then
+  echo "buzz-nsec: expected 64 hex characters, got '${2}'" >&2
+  exit 1
+fi
+
+# Regroup the 32 payload bytes into 5-bit values.
+data=()
+acc=0
+bits=0
+for ((i = 0; i < ${#hex}; i += 2)); do
+  acc=$(((acc << 8) | 16#${hex:i:2}))
+  bits=$((bits + 8))
+  while [ "$bits" -ge 5 ]; do
+    bits=$((bits - 5))
+    data+=("$(((acc >> bits) & 31))")
+  done
+done
+if [ "$bits" -gt 0 ]; then
+  data+=("$(((acc << (5 - bits)) & 31))")
+fi
+
+# Human-readable part, expanded as high bits, separator, low bits.
+expanded=()
+for ((i = 0; i < ${#hrp}; i++)); do
+  expanded+=("$(($(printf '%d' "'${hrp:i:1}") >> 5))")
+done
+expanded+=(0)
+for ((i = 0; i < ${#hrp}; i++)); do
+  expanded+=("$(($(printf '%d' "'${hrp:i:1}") & 31))")
+done
+
+chk=1
+for value in "${expanded[@]}" "${data[@]}" 0 0 0 0 0 0; do
+  top=$((chk >> 25))
+  chk=$((((chk & 0x1ffffff) << 5) ^ value))
+  for g in 0 1 2 3 4; do
+    if [ $(((top >> g) & 1)) -eq 1 ]; then
+      chk=$((chk ^ ${GEN[g]}))
+    fi
+  done
+done
+chk=$((chk ^ 1))
+
+out="${hrp}1"
+for value in "${data[@]}"; do
+  out="${out}${CHARSET:value:1}"
+done
+for i in 0 1 2 3 4 5; do
+  idx=$(((chk >> (5 * (5 - i))) & 31))
+  out="${out}${CHARSET:idx:1}"
+done
+
+printf '%s\n' "$out"

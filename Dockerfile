@@ -34,6 +34,7 @@ ENV PORT=3000 \
     BUZZ_S3_ACCESS_KEY=buzz
 
 COPY --chmod=0755 buzz-boot /usr/local/bin/buzz-boot
+COPY --chmod=0755 buzz-nsec /usr/local/bin/buzz-nsec
 
 # Deliberately stays root: the entrypoint needs to chown a root-owned mounted
 # volume before it can hand off. It drops to uid 1000 via setpriv immediately

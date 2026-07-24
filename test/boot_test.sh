@@ -124,6 +124,55 @@ else
        "bind=$bind8080 health=${hp:-<unset>}"
 fi
 
+# 9. One deploy, many workspaces: the relay resolves communities by hostname,
+#    but provisioning is gated by RELAY_OPERATOR_PUBKEYS and an empty allowlist
+#    disables it entirely. The owner should be an operator by default, or a
+#    deployer can never add a second community without editing variables.
+op=$(run_env | grep -oE '^RELAY_OPERATOR_PUBKEYS=.*' | cut -d= -f2)
+own=$(owner_of "$(run_env)")
+if [[ -n "$op" && "$op" =~ ^[0-9a-f]{64}$ ]]; then
+  pass "makes the generated owner a relay operator by default"
+else
+  fail "makes the generated owner a relay operator by default" \
+       "RELAY_OPERATOR_PUBKEYS set to a 64-hex pubkey" "${op:-<unset>}"
+fi
+
+# 10. An explicit operator allowlist must win — the deployer may want operators
+#     who are not the owner.
+opk="2222222222222222222222222222222222222222222222222222222222222222"
+kept_op=$(run_env -e "RELAY_OPERATOR_PUBKEYS=$opk" | grep -oE '^RELAY_OPERATOR_PUBKEYS=.*' | cut -d= -f2)
+if [[ "$kept_op" == "$opk" ]]; then
+  pass "leaves an explicit operator allowlist alone"
+else
+  fail "leaves an explicit operator allowlist alone" "$opk" "${kept_op:-<unset>}"
+fi
+
+# 11. The desktop app only accepts bech32 nsec1 keys, so a banner printing raw
+#     hex walls every deployer at first login. Checked against known-good
+#     vectors because a subtly wrong bech32 encoder is worse than none.
+nsec_out=$(docker run --rm --entrypoint buzz-nsec "$IMG" \
+  nsec fa20c1ddcd070e332a2d3fb28e72196bcd1236fbe1262ff152c6ab77ed179c9e 2>&1)
+npub_out=$(docker run --rm --entrypoint buzz-nsec "$IMG" \
+  npub 8bc0b8a4ffaf6916f24fc7d35201e9fb33b26912cfc8426c2ec4e764aa312828 2>&1)
+want_nsec="nsec1lgsvrhwdqu8rx23d87eguused0x3ydhmuynzlu2jc64h0mghnj0qe4dsj3"
+want_npub="npub130qt3f8l4a53duj0clf4yq0flvemy6gjelyyympwcnnkf2339q5q5nqxk9"
+if [[ "$nsec_out" == "$want_nsec" && "$npub_out" == "$want_npub" ]]; then
+  pass "encodes bech32 nsec/npub matching known vectors"
+else
+  fail "encodes bech32 nsec/npub matching known vectors" \
+       "$want_nsec / $want_npub" "$nsec_out / $npub_out"
+fi
+
+# 12. The generated-key banner must carry the nsec, since that is the only form
+#     the desktop app will accept.
+banner=$(docker run --rm --tmpfs /data/git:uid=0,gid=0,mode=0755 "$IMG" true 2>&1)
+if [[ "$banner" == *"nsec1"* ]]; then
+  pass "prints an nsec in the generated-key banner"
+else
+  fail "prints an nsec in the generated-key banner" "banner containing nsec1…" \
+       "$(echo "$banner" | head -12)"
+fi
+
 echo
 if [[ $FAILED -eq 0 ]]; then
   echo "boot_test: PASS"
