@@ -78,6 +78,20 @@ else
        "exit=$code out=$bad"
 fi
 
+# 5. Railway mounts volumes owned by root while the relay runs as uid 1000, so
+#    a plain named volume (which inherits image ownership) does not reproduce
+#    production. A root-owned tmpfs does. The bootstrap has to fix ownership and
+#    still hand off unprivileged.
+root_vol=$(docker run --rm --tmpfs /data/git:uid=0,gid=0,mode=0755 "$IMG" \
+  sh -c 'echo "UID=$(id -u)"; env' 2>&1)
+root_owner=$(owner_of "$root_vol")
+if [[ "$root_vol" == *"UID=1000"* && "$root_owner" =~ ^[0-9a-f]{64}$ ]]; then
+  pass "works on a root-owned volume and drops back to uid 1000"
+else
+  fail "works on a root-owned volume and drops back to uid 1000" \
+       "UID=1000 and a 64-hex owner pubkey" "$root_vol"
+fi
+
 echo
 if [[ $FAILED -eq 0 ]]; then
   echo "boot_test: PASS"

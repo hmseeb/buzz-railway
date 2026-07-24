@@ -11,6 +11,17 @@ KEYFILE="$KEYDIR/.owner-key"
 
 die() { echo "buzz-boot: $*" >&2; exit 1; }
 
+# Railway mounts volumes owned by root, but the relay runs as uid 1000 and so
+# cannot create its own data directory. Fix ownership while we still have the
+# privileges to do it, then immediately drop back and re-enter this script.
+# Non-recursive on purpose: only the mount point itself arrives root-owned, and
+# a recursive chown would crawl the whole volume on every boot.
+if [ "$(id -u)" = "0" ]; then
+  mkdir -p "$KEYDIR"
+  chown 1000:1000 "$KEYDIR" "$(dirname "$KEYDIR")" 2>/dev/null || true
+  exec setpriv --reuid=1000 --regid=1000 --init-groups "$0" "$@"
+fi
+
 if [ -n "${RELAY_OWNER_PUBKEY:-}" ]; then
   key="${RELAY_OWNER_PUBKEY,,}"
   [[ "$key" =~ ^[0-9a-f]{64}$ ]] || die \
