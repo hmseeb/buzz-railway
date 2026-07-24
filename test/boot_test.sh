@@ -62,20 +62,28 @@ else
   fail "passes a supplied pubkey through unchanged" "$HEX64" "${supplied:-<unset>}"
 fi
 
-# 4. Operator pastes an npub (what a human actually has) instead of hex. The
-#    relay would warn and ignore it, leaving an unadministrable deploy, so the
-#    bootstrap must refuse to start.
-# The relay's own warn-and-ignore message also contains the word "hex", so this
-# asserts on the buzz-boot prefix too — otherwise it passes on the very failure
-# it exists to prevent.
-bad=$(docker run --rm -v "$VOL:/data/git" -e "RELAY_OWNER_PUBKEY=npub1abc" "$IMG" env 2>&1)
-code=$?
-if [[ $code -ne 0 && "$bad" == *buzz-boot:* && "$bad" == *hex* ]]; then
-  pass "rejects a non-hex pubkey before the relay starts"
+# 4. The recommended path: the deployer pastes the bech32 npub the app shows.
+#    The bootstrap must decode it to the hex the relay wants, so the deployer
+#    never has to handle a private key or hex.
+NPUB="npub130qt3f8l4a53duj0clf4yq0flvemy6gjelyyympwcnnkf2339q5q5nqxk9"
+NPUB_HEX="8bc0b8a4ffaf6916f24fc7d35201e9fb33b26912cfc8426c2ec4e764aa312828"
+from_npub=$(owner_of "$(run_env -e "RELAY_OWNER_PUBKEY=$NPUB")")
+if [[ "$from_npub" == "$NPUB_HEX" ]]; then
+  pass "accepts the app's npub and converts it to the owner hex key"
 else
-  fail "rejects a non-hex pubkey before the relay starts" \
-       "non-zero exit, message prefixed buzz-boot: and mentioning hex" \
-       "exit=$code out=$bad"
+  fail "accepts the app's npub and converts it to the owner hex key" \
+       "$NPUB_HEX" "${from_npub:-<unset>}"
+fi
+
+# 4b. Garbage that is neither hex nor a valid npub must refuse to start, or the
+#     relay would silently run with no administrable owner.
+bad=$(docker run --rm -v "$VOL:/data/git" -e "RELAY_OWNER_PUBKEY=not-a-real-key" "$IMG" env 2>&1)
+code=$?
+if [[ $code -ne 0 && "$bad" == *buzz-boot:* ]]; then
+  pass "rejects an invalid owner key before the relay starts"
+else
+  fail "rejects an invalid owner key before the relay starts" \
+       "non-zero exit, message prefixed buzz-boot:" "exit=$code out=$bad"
 fi
 
 # 5. Railway mounts volumes owned by root while the relay runs as uid 1000, so

@@ -69,6 +69,24 @@ fn post_signed(
 
 fn main() {
     let a: Vec<String> = std::env::args().collect();
+
+    // decode mode: `buzz-provision decode npub1…` prints the 64-char hex pubkey.
+    // The app shows identities as bech32 npub, but the relay wants hex, so the
+    // boot script converts a deployer-supplied owner key before use.
+    if a.len() >= 3 && a[1] == "decode" {
+        use nostr::nips::nip19::FromBech32;
+        match nostr::PublicKey::from_bech32(&a[2]) {
+            Ok(pk) => {
+                println!("{}", pk.to_hex());
+                return;
+            }
+            Err(_) => {
+                eprintln!("buzz-provision: not a valid npub: {}", a[2]);
+                std::process::exit(1);
+            }
+        }
+    }
+
     if a.len() < 6 {
         eprintln!("usage: buzz-provision <secret> <public-origin> <host> <owner-pubkey> <port>");
         std::process::exit(2);

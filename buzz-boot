@@ -24,10 +24,17 @@ fi
 
 if [ -n "${RELAY_OWNER_PUBKEY:-}" ]; then
   key="${RELAY_OWNER_PUBKEY,,}"
+  # The app shows your identity as a bech32 npub, so accept that and convert it
+  # to the hex the relay wants. This is the recommended path: your private key
+  # never leaves your device, and nothing sensitive is ever printed.
+  if [[ "$key" == npub1* ]]; then
+    key=$(buzz-provision decode "$key") \
+      || die "RELAY_OWNER_PUBKEY looks like an npub but could not be decoded: '${RELAY_OWNER_PUBKEY}'"
+  fi
   [[ "$key" =~ ^[0-9a-f]{64}$ ]] || die \
-    "RELAY_OWNER_PUBKEY must be 64 hex characters, got '${RELAY_OWNER_PUBKEY}'. \
-An npub is bech32, not hex — convert it first, or leave this blank and a keypair \
-will be generated for you."
+    "RELAY_OWNER_PUBKEY must be your public key — paste the npub the Buzz app shows \
+under your profile, or a 64-character hex key. Got '${RELAY_OWNER_PUBKEY}'. Leave it \
+blank and a keypair will be generated for you instead."
   RELAY_OWNER_PUBKEY="$key"
 else
   mkdir -p "$KEYDIR" 2>/dev/null || true

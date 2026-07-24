@@ -8,7 +8,7 @@ name = "buzz-provision"
 path = "src/main.rs"
 
 [dependencies]
-nostr = { version = "0.44", features = ["nip98"] }
+nostr = { version = "0.44", features = ["nip98", "std"] }
 sha2 = "0.10"
 base64 = "0.22"
 hex = "0.4"
