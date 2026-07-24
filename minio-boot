@@ -1,0 +1,40 @@
+#!/bin/sh
+# Start MinIO and make sure Buzz's bucket exists, in one service.
+#
+# Upstream's image exits with a help screen unless given a server command, and
+# the bucket normally needs a second `minio/mc` container to create it. Railway's
+# CLI cannot set a start command, so both are baked in here — which also means
+# the template needs no startCommand at all.
+set -eu
+
+: "${MINIO_ROOT_USER:?MINIO_ROOT_USER is required}"
+: "${MINIO_ROOT_PASSWORD:?MINIO_ROOT_PASSWORD is required}"
+
+BUCKET="${BUZZ_S3_BUCKET:-buzz-media}"
+DATA="${MINIO_DATA_DIR:-/data}"
+LISTEN_PORT="${PORT:-9000}"
+
+# mc writes its config to $HOME, which is not reliably writable on a mounted
+# volume, so keep it on the container filesystem.
+export MC_CONFIG_DIR=/tmp/.mc
+
+mkdir -p "$DATA"
+minio server "$DATA" --address ":$LISTEN_PORT" &
+MINIO_PID=$!
+
+attempt=0
+until mc alias set local "http://127.0.0.1:$LISTEN_PORT" \
+  "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD" >/dev/null 2>&1; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -gt 60 ]; then
+    echo "minio-boot: server did not become reachable within 60s" >&2
+    exit 1
+  fi
+  sleep 1
+done
+
+mc mb --ignore-existing "local/$BUCKET" >/dev/null
+mc anonymous set none "local/$BUCKET" >/dev/null
+echo "minio-boot: bucket $BUCKET ready on :$LISTEN_PORT"
+
+wait "$MINIO_PID"

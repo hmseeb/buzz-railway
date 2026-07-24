@@ -99,10 +99,9 @@
     "minio": {
       "name": "MinIO",
       "source": {
-        "image": "minio/minio:RELEASE.2025-09-07T16-13-09Z"
+        "image": "ghcr.io/hmseeb/buzz-railway-minio:latest"
       },
       "deploy": {
-        "startCommand": "server $RAILWAY_VOLUME_MOUNT_PATH --address :$PORT",
         "healthcheckPath": "/minio/health/live",
         "restartPolicyType": "ON_FAILURE",
         "restartPolicyMaxRetries": 10
@@ -112,6 +111,7 @@
         "MINIO_ROOT_PASSWORD": "${{secret(32)}}",
         "MINIO_ROOT_USER": "buzz",
         "PORT": "9000",
+        "BUZZ_S3_BUCKET": "buzz-media",
         "MINIO_DOMAIN": "${{RAILWAY_PRIVATE_DOMAIN}}"
       },
       "volumeMounts": [
@@ -120,17 +120,6 @@
           "volumeName": "minio-data"
         }
       ]
-    },
-    "minio-init": {
-      "name": "MinIO Init",
-      "source": {
-        "image": "minio/mc:RELEASE.2025-08-13T08-35-41Z"
-      },
-      "deploy": {
-        "startCommand": "/bin/sh -c \"until mc alias set local http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:${{MinIO.PORT}} ${{MinIO.MINIO_ROOT_USER}} ${{MinIO.MINIO_ROOT_PASSWORD}}; do sleep 2; done; mc mb --ignore-existing local/buzz-media; mc anonymous set none local/buzz-media\"",
-        "restartPolicyType": "ON_FAILURE",
-        "restartPolicyMaxRetries": 10
-      }
     }
   },
   "canvasConfig": {
@@ -138,8 +127,7 @@
       "buzz": { "x": 0, "y": 0 },
       "postgres": { "x": -280, "y": 180 },
       "redis": { "x": 0, "y": 180 },
-      "minio": { "x": 280, "y": 180 },
-      "minio-init": { "x": 280, "y": 360 }
+      "minio": { "x": 280, "y": 180 }
     }
   }
 }

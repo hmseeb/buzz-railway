@@ -1,0 +1,13 @@
+# MinIO with its server command and bucket creation baked in, so the Railway
+# template needs no startCommand and no separate init service.
+FROM minio/minio:RELEASE.2025-09-07T16-13-09Z
+
+LABEL org.opencontainers.image.title="MinIO for Buzz on Railway" \
+      org.opencontainers.image.description="MinIO that starts unattended and creates the Buzz media bucket" \
+      org.opencontainers.image.source="https://github.com/hmseeb/buzz-railway"
+
+COPY --chmod=0755 minio-boot /usr/local/bin/minio-boot
+
+# The base image sets CMD, which would otherwise arrive as stray arguments.
+ENTRYPOINT ["/usr/local/bin/minio-boot"]
+CMD []
