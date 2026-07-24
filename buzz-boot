@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Resolve the relay owner before handing off to buzz-relay.
+#
+# buzz-relay warn-and-ignores an invalid RELAY_OWNER_PUBKEY and starts anyway,
+# which yields a running relay nobody can administer. One-click deployers also
+# rarely have a Nostr keypair to hand. So: validate strictly, or mint one.
+set -euo pipefail
+
+KEYDIR="${BUZZ_GIT_REPO_PATH:-/data/git}"
+KEYFILE="$KEYDIR/.owner-key"
+
+die() { echo "buzz-boot: $*" >&2; exit 1; }
+
+if [ -n "${RELAY_OWNER_PUBKEY:-}" ]; then
+  key="${RELAY_OWNER_PUBKEY,,}"
+  [[ "$key" =~ ^[0-9a-f]{64}$ ]] || die \
+    "RELAY_OWNER_PUBKEY must be 64 hex characters, got '${RELAY_OWNER_PUBKEY}'. \
+An npub is bech32, not hex — convert it first, or leave this blank and a keypair \
+will be generated for you."
+  RELAY_OWNER_PUBKEY="$key"
+else
+  mkdir -p "$KEYDIR" 2>/dev/null || true
+  # Regenerating on every boot would silently rotate the owner and lock the
+  # operator out, so an unwritable volume is fatal rather than best-effort.
+  [ -w "$KEYDIR" ] || die "cannot write $KEYDIR — the owner key must persist across restarts"
+
+  if [ ! -f "$KEYFILE" ]; then
+    (umask 077; buzz-admin generate-key > "$KEYFILE")
+    echo "buzz-boot: ============================================================"
+    echo "buzz-boot: No RELAY_OWNER_PUBKEY was set, so an owner keypair was"
+    echo "buzz-boot: generated. Save the secret key now and sign in with it:"
+    echo "buzz-boot:"
+    sed 's/^/buzz-boot:   /' "$KEYFILE"
+    echo "buzz-boot:"
+    echo "buzz-boot: This is printed once. It stays on the volume at $KEYFILE."
+    echo "buzz-boot: ============================================================"
+  fi
+
+  RELAY_OWNER_PUBKEY=$(awk '/^Public key:/{print $3}' "$KEYFILE")
+  [[ "$RELAY_OWNER_PUBKEY" =~ ^[0-9a-f]{64}$ ]] || die \
+    "could not read a hex pubkey from $KEYFILE — delete it and redeploy to regenerate"
+fi
+
+export RELAY_OWNER_PUBKEY
+exec "$@"
