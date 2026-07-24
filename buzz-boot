@@ -31,17 +31,22 @@ fi
 
 if [ -n "${RELAY_OWNER_PUBKEY:-}" ]; then
   key="${RELAY_OWNER_PUBKEY,,}"
+  # The most dangerous mistake is pasting the PRIVATE key here. Catch it first,
+  # and never echo the value — printing a private key to the logs would leak it.
+  if [[ "$key" == nsec1* ]]; then
+    die "RELAY_OWNER_PUBKEY is a PRIVATE key (it starts with nsec). Never share your \
+private key. Use your PUBLIC key instead — it starts with npub, and the Buzz app shows \
+it on the 'Join a community' screen with a Copy button."
+  fi
   # The app shows your identity as a bech32 npub, so accept that and convert it
-  # to the hex the relay wants. This is the recommended path: your private key
-  # never leaves your device, and nothing sensitive is ever printed.
+  # to the hex the relay wants. Your private key never leaves your device.
   if [[ "$key" == npub1* ]]; then
     key=$(buzz-provision decode "$key") \
-      || die "RELAY_OWNER_PUBKEY looks like an npub but could not be decoded: '${RELAY_OWNER_PUBKEY}'"
+      || die "could not read that npub. Copy your public key again from the Buzz app."
   fi
   [[ "$key" =~ ^[0-9a-f]{64}$ ]] || die \
-    "RELAY_OWNER_PUBKEY must be your public key — paste the npub the Buzz app shows \
-under your profile, or a 64-character hex key. Got '${RELAY_OWNER_PUBKEY}'. Leave it \
-blank and a keypair will be generated for you instead."
+    "RELAY_OWNER_PUBKEY must be your PUBLIC key (starts with npub), copied from the Buzz \
+app's 'Join a community' screen. Or type the word 'generate' to have a key made for you."
   RELAY_OWNER_PUBKEY="$key"
 else
   mkdir -p "$KEYDIR" 2>/dev/null || true

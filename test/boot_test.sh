@@ -86,6 +86,20 @@ else
        "$NPUB_HEX" "${from_npub:-<unset>}"
 fi
 
+# 4a. The single most dangerous mistake: pasting the PRIVATE key (nsec) into the
+#     owner field. The boot must refuse AND must never print the secret to the
+#     logs. Assert both: it dies, names it as private, and does NOT echo the value.
+FAKE_NSEC="nsec1faketestprivatekeyvalue00000000000000000000000000000000zz"
+nsec_out=$(docker run --rm -v "$VOL:/data/git" -e "RELAY_OWNER_PUBKEY=$FAKE_NSEC" "$IMG" env 2>&1)
+nsec_code=$?
+if [[ $nsec_code -ne 0 && "$nsec_out" == *private* && "$nsec_out" != *"$FAKE_NSEC"* ]]; then
+  pass "refuses a private key (nsec) without ever printing it"
+else
+  fail "refuses a private key (nsec) without ever printing it" \
+       "non-zero exit, message naming it private, secret NOT echoed" \
+       "exit=$nsec_code out=$nsec_out"
+fi
+
 # 4b. Garbage that is neither hex nor a valid npub must refuse to start, or the
 #     relay would silently run with no administrable owner.
 bad=$(docker run --rm -v "$VOL:/data/git" -e "RELAY_OWNER_PUBKEY=not-a-real-key" "$IMG" env 2>&1)
