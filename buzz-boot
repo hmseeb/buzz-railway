@@ -59,5 +59,15 @@ if [[ ! "${BUZZ_BIND_ADDR:-}" =~ :[0-9]+$ ]]; then
   BUZZ_BIND_ADDR="0.0.0.0:${PORT:-3000}"
 fi
 
-export RELAY_OWNER_PUBKEY BUZZ_BIND_ADDR
+# The health router listens on 8080 by default. Railway injects its own $PORT
+# which overrides anything set in the image, and when that value is also 8080
+# the relay starts cleanly and then dies on "Address already in use" — a
+# failure that reads like a networking fault rather than a port collision.
+app_port="${BUZZ_BIND_ADDR##*:}"
+if [ "${BUZZ_HEALTH_PORT:-8080}" = "$app_port" ]; then
+  BUZZ_HEALTH_PORT=$((app_port + 1))
+fi
+BUZZ_HEALTH_PORT="${BUZZ_HEALTH_PORT:-8080}"
+
+export RELAY_OWNER_PUBKEY BUZZ_BIND_ADDR BUZZ_HEALTH_PORT
 exec "$@"

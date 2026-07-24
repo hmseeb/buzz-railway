@@ -110,6 +110,20 @@ else
   fail "leaves an explicit bind address alone" "0.0.0.0:9999" "${kept:-<unset>}"
 fi
 
+# 8. Railway injects its own PORT and it overrides the image's ENV. When that
+#    value is 8080 it collides with the relay's default health port and the
+#    process dies on "Address already in use", after a clean startup that makes
+#    it look like a networking fault.
+hp=$(run_env -e "PORT=8080" | grep -oE '^BUZZ_HEALTH_PORT=.*' | cut -d= -f2)
+bind8080=$(run_env -e "PORT=8080" | grep -oE '^BUZZ_BIND_ADDR=.*' | cut -d= -f2)
+if [[ "$bind8080" == "0.0.0.0:8080" && -n "$hp" && "$hp" != "8080" ]]; then
+  pass "moves the health port when \$PORT would collide with it (-> $hp)"
+else
+  fail "moves the health port when \$PORT would collide with it" \
+       "bind 0.0.0.0:8080 and a health port other than 8080" \
+       "bind=$bind8080 health=${hp:-<unset>}"
+fi
+
 echo
 if [[ $FAILED -eq 0 ]]; then
   echo "boot_test: PASS"

@@ -19,6 +19,7 @@
         }
       },
       "variables": {
+        "PORT": "3000",
         "BUZZ_RELAY_PRIVATE_KEY": "${{secret(64, 'abcdef0123456789')}}",
         "BUZZ_GIT_HOOK_HMAC_SECRET": "${{secret(64, 'abcdef0123456789')}}",
         "BUZZ_CORS_ORIGINS": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
@@ -29,7 +30,7 @@
         "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
         "REDIS_URL": "${{Redis.REDIS_URL}}",
         "RELAY_OWNER_PUBKEY": {
-          "description": "Optional. Your Nostr public key as 64 hex characters (not an npub). Leave blank and an owner keypair is generated on first boot — the secret key is printed once in this service's deploy logs.",
+          "description": "Optional. Your Nostr public key as 64 hex characters (not an npub). Leave blank and an owner keypair is generated on first boot \u2014 the secret key is printed once in this service's deploy logs.",
           "isOptional": true
         }
       },
@@ -97,6 +98,7 @@
         "restartPolicyMaxRetries": 10
       },
       "variables": {
+        "PORT": "9000",
         "MINIO_ROOT_PASSWORD": "${{secret(32)}}",
         "MINIO_DOMAIN": "${{RAILWAY_PRIVATE_DOMAIN}}"
       },
@@ -110,10 +112,22 @@
   },
   "canvasConfig": {
     "services": {
-      "buzz": { "x": 0, "y": 0 },
-      "postgres": { "x": -280, "y": 180 },
-      "redis": { "x": 0, "y": 180 },
-      "minio": { "x": 280, "y": 180 }
+      "buzz": {
+        "x": 0,
+        "y": 0
+      },
+      "postgres": {
+        "x": -280,
+        "y": 180
+      },
+      "redis": {
+        "x": 0,
+        "y": 180
+      },
+      "minio": {
+        "x": 280,
+        "y": 180
+      }
     }
   }
 }

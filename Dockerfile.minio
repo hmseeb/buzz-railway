@@ -8,6 +8,9 @@ LABEL org.opencontainers.image.title="MinIO for Buzz on Railway" \
 
 # Same reasoning as the relay image: only the password varies per deploy, so
 # everything else is baked in and never reaches the template.
+# PORT is a local-run fallback only. Railway injects its own PORT at runtime,
+# which overrides anything set here, so the template must pin PORT=9000
+# explicitly — the relay addresses this service at a fixed port.
 ENV PORT=9000 \
     MINIO_ROOT_USER=buzz \
     MINIO_BROWSER=off \
