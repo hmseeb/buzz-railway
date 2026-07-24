@@ -50,9 +50,17 @@ fi
 
 # 2. The bucket Buzz expects must already exist, or media and git object writes
 #    fail on a relay that otherwise looks healthy.
-# docker exec does not inherit the entrypoint's environment, so the mc config
-# directory has to be passed again or mc looks for a default alias on :9000.
-buckets=$(docker exec -e MC_CONFIG_DIR=/tmp/.mc "$NAME" mc ls local 2>&1)
+# The bucket is created after the server answers its health check, so this has
+# to poll rather than check once — a single check passes or fails on timing.
+# docker exec does not inherit the entrypoint's environment either, so the mc
+# config directory has to be passed again or mc falls back to a default alias
+# pointing at :9000.
+buckets=""
+for _ in $(seq 1 20); do
+  buckets=$(docker exec -e MC_CONFIG_DIR=/tmp/.mc "$NAME" mc ls local 2>&1)
+  [[ "$buckets" == *buzz-media* ]] && break
+  sleep 1
+done
 if [[ "$buckets" == *buzz-media* ]]; then
   pass "creates the buzz-media bucket on first boot"
 else

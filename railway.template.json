@@ -19,25 +19,15 @@
         }
       },
       "variables": {
-        "PORT": "3000",
-        "BUZZ_METRICS_PORT": "9102",
-        "BUZZ_AUTO_MIGRATE": "true",
         "BUZZ_RELAY_PRIVATE_KEY": "${{secret(64, 'abcdef0123456789')}}",
-        "BUZZ_REQUIRE_AUTH_TOKEN": "true",
-        "BUZZ_REQUIRE_RELAY_MEMBERSHIP": "true",
-        "BUZZ_ALLOW_NIP_OA_AUTH": "true",
-        "BUZZ_CORS_ORIGINS": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
-        "BUZZ_GIT_REPO_PATH": "/data/git",
         "BUZZ_GIT_HOOK_HMAC_SECRET": "${{secret(64, 'abcdef0123456789')}}",
-        "BUZZ_GIT_CONFORMANCE_PROBE": "true",
-        "BUZZ_S3_ENDPOINT": "http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:${{MinIO.PORT}}",
-        "BUZZ_S3_ACCESS_KEY": "${{MinIO.MINIO_ROOT_USER}}",
-        "BUZZ_S3_SECRET_KEY": "${{MinIO.MINIO_ROOT_PASSWORD}}",
-        "BUZZ_S3_BUCKET": "buzz-media",
+        "BUZZ_CORS_ORIGINS": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
         "BUZZ_MEDIA_BASE_URL": "https://${{RAILWAY_PUBLIC_DOMAIN}}/media",
+        "RELAY_URL": "wss://${{RAILWAY_PUBLIC_DOMAIN}}",
+        "BUZZ_S3_ENDPOINT": "http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:9000",
+        "BUZZ_S3_SECRET_KEY": "${{MinIO.MINIO_ROOT_PASSWORD}}",
         "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
         "REDIS_URL": "${{Redis.REDIS_URL}}",
-        "RELAY_URL": "wss://${{RAILWAY_PUBLIC_DOMAIN}}",
         "RELAY_OWNER_PUBKEY": {
           "description": "Optional. Your Nostr public key as 64 hex characters (not an npub). Leave blank and an owner keypair is generated on first boot — the secret key is printed once in this service's deploy logs.",
           "isOptional": true
@@ -107,11 +97,7 @@
         "restartPolicyMaxRetries": 10
       },
       "variables": {
-        "MINIO_BROWSER": "off",
         "MINIO_ROOT_PASSWORD": "${{secret(32)}}",
-        "MINIO_ROOT_USER": "buzz",
-        "PORT": "9000",
-        "BUZZ_S3_BUCKET": "buzz-media",
         "MINIO_DOMAIN": "${{RAILWAY_PRIVATE_DOMAIN}}"
       },
       "volumeMounts": [

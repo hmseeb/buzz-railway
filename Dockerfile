@@ -18,6 +18,21 @@ USER root
 # ownership onto a fresh named volume, which is where the owner key persists.
 RUN mkdir -p /data/git && chown 1000:1000 /data/git
 
+# Static configuration lives here rather than in the template. None of it
+# varies per deploy, and every value left in the template becomes a field the
+# deployer has to fill in before Railway will let them click Deploy.
+ENV PORT=3000 \
+    BUZZ_METRICS_PORT=9102 \
+    BUZZ_AUTO_MIGRATE=true \
+    BUZZ_REQUIRE_AUTH_TOKEN=true \
+    BUZZ_REQUIRE_RELAY_MEMBERSHIP=true \
+    BUZZ_ALLOW_NIP_OA_AUTH=true \
+    BUZZ_GIT_REPO_PATH=/data/git \
+    BUZZ_GIT_CONFORMANCE_PROBE=true \
+    BUZZ_SERVE_GIT_WEB_GUI=true \
+    BUZZ_S3_BUCKET=buzz-media \
+    BUZZ_S3_ACCESS_KEY=buzz
+
 COPY --chmod=0755 buzz-boot /usr/local/bin/buzz-boot
 
 # Deliberately stays root: the entrypoint needs to chown a root-owned mounted

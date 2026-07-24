@@ -6,6 +6,13 @@ LABEL org.opencontainers.image.title="MinIO for Buzz on Railway" \
       org.opencontainers.image.description="MinIO that starts unattended and creates the Buzz media bucket" \
       org.opencontainers.image.source="https://github.com/hmseeb/buzz-railway"
 
+# Same reasoning as the relay image: only the password varies per deploy, so
+# everything else is baked in and never reaches the template.
+ENV PORT=9000 \
+    MINIO_ROOT_USER=buzz \
+    MINIO_BROWSER=off \
+    BUZZ_S3_BUCKET=buzz-media
+
 COPY --chmod=0755 minio-boot /usr/local/bin/minio-boot
 
 # The base image sets CMD, which would otherwise arrive as stray arguments.
