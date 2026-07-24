@@ -35,6 +35,12 @@ fn sign_nip98(keys: &Keys, method: &str, url: &str, body: &[u8]) -> String {
 }
 
 // POST a signed request to the relay over localhost. Returns (status_line, body).
+//
+// The request is sent to 127.0.0.1, but the Host header must be the community's
+// public domain: workspace-scoped endpoints (like /api/invites) resolve the
+// workspace from Host, so a localhost Host makes them 404. Server-wide endpoints
+// (like /operator/communities) ignore it, so sending the real host is safe for
+// both.
 fn post_signed(
     keys: &Keys,
     origin: &str,
@@ -42,9 +48,12 @@ fn post_signed(
     body_bytes: &[u8],
     port: u16,
 ) -> std::io::Result<(String, String)> {
+    let host = origin
+        .trim_start_matches("https://")
+        .trim_start_matches("http://");
     let auth = sign_nip98(keys, "POST", &format!("{origin}{path}"), body_bytes);
     let req = format!(
-        "POST {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Nostr {auth}\r\n\
+        "POST {path} HTTP/1.1\r\nHost: {host}\r\nAuthorization: Nostr {auth}\r\n\
          Content-Type: application/json\r\nContent-Length: {len}\r\nConnection: close\r\n\r\n",
         len = body_bytes.len()
     );
