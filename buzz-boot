@@ -68,6 +68,15 @@ fi
 RELAY_OPERATOR_PUBKEYS="${RELAY_OPERATOR_PUBKEYS:-$RELAY_OWNER_PUBKEY}"
 export RELAY_OPERATOR_PUBKEYS
 
+# Provisioning needs the public origin too: the relay sits behind a proxy and
+# cannot trust its own request URL, so without this the endpoint 500s with
+# "operator API origin is not configured". Derive it from the platform domain;
+# an explicit value wins.
+if [ -z "${RELAY_OPERATOR_API_ORIGIN:-}" ] && [ -n "${RAILWAY_PUBLIC_DOMAIN:-}" ]; then
+  RELAY_OPERATOR_API_ORIGIN="https://${RAILWAY_PUBLIC_DOMAIN}"
+fi
+export RELAY_OPERATOR_API_ORIGIN
+
 # The relay refuses to start on a malformed bind address, and the usual way to
 # get one is a platform variable reference that resolved to nothing, leaving
 # "0.0.0.0:" with no port. Repair it from $PORT; an explicit valid value wins.

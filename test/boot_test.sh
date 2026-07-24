@@ -137,6 +137,18 @@ else
        "RELAY_OPERATOR_PUBKEYS set to a 64-hex pubkey" "${op:-<unset>}"
 fi
 
+# 9b. Provisioning also needs RELAY_OPERATOR_API_ORIGIN, or the endpoint 500s
+#     with "operator API origin is not configured" — being an operator is not
+#     enough on its own. Derive it from the platform's public domain.
+origin=$(run_env -e "RAILWAY_PUBLIC_DOMAIN=relay.example.app" \
+  | grep -oE '^RELAY_OPERATOR_API_ORIGIN=.*' | cut -d= -f2)
+if [[ "$origin" == "https://relay.example.app" ]]; then
+  pass "derives the operator API origin from the public domain"
+else
+  fail "derives the operator API origin from the public domain" \
+       "https://relay.example.app" "${origin:-<unset>}"
+fi
+
 # 10. An explicit operator allowlist must win — the deployer may want operators
 #     who are not the owner.
 opk="2222222222222222222222222222222222222222222222222222222222222222"
