@@ -1,11 +1,15 @@
-// Create a Buzz community by calling the relay's operator endpoint with a
-// NIP-98-signed request. Kept dependency-light: signing needs a real crypto
-// library, but the HTTP call is a raw localhost request so there is no async
-// runtime or TLS stack to pull in.
+// Talk to the relay's owner-only endpoints with a NIP-98-signed request. Two
+// jobs, both owner-signed:
+//   - default: create a community via POST /operator/communities
+//   - BUZZ_MINT_INVITE=1: mint a join invite via POST /api/invites and print
+//     only the shareable invite URL (used to print a one-click connect link
+//     at startup)
 //
-// The relay verifies the signed `u` tag against its configured public origin,
-// not the socket it received the request on, so we sign with the public origin
-// and send over plain HTTP to 127.0.0.1.
+// Kept dependency-light: signing needs a real crypto library, but the HTTP call
+// is a raw localhost request so there is no async runtime or TLS stack. The
+// relay verifies the signed `u` tag against its configured public origin, not
+// the socket, so we sign with the public origin and send over plain HTTP to
+// 127.0.0.1.
 //
 // usage: buzz-provision <secret> <public-origin> <host> <owner-pubkey> <bind-port>
 use base64::engine::general_purpose::STANDARD as B64;
@@ -14,8 +18,6 @@ use nostr::{EventBuilder, JsonUtil, Keys, Kind, Tag};
 use sha2::{Digest, Sha256};
 use std::io::{Read, Write};
 use std::net::TcpStream;
-
-const PATH: &str = "/operator/communities";
 
 fn sign_nip98(keys: &Keys, method: &str, url: &str, body: &[u8]) -> String {
     let payload = hex::encode(Sha256::digest(body));
@@ -32,50 +34,82 @@ fn sign_nip98(keys: &Keys, method: &str, url: &str, body: &[u8]) -> String {
     B64.encode(event.as_json().as_bytes())
 }
 
+// POST a signed request to the relay over localhost. Returns (status_line, body).
+fn post_signed(
+    keys: &Keys,
+    origin: &str,
+    path: &str,
+    body_bytes: &[u8],
+    port: u16,
+) -> std::io::Result<(String, String)> {
+    let auth = sign_nip98(keys, "POST", &format!("{origin}{path}"), body_bytes);
+    let req = format!(
+        "POST {path} HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Nostr {auth}\r\n\
+         Content-Type: application/json\r\nContent-Length: {len}\r\nConnection: close\r\n\r\n",
+        len = body_bytes.len()
+    );
+    let mut stream = TcpStream::connect(("127.0.0.1", port))?;
+    stream.write_all(req.as_bytes())?;
+    stream.write_all(body_bytes)?;
+    let mut resp = String::new();
+    stream.read_to_string(&mut resp).ok();
+    let status = resp.lines().next().unwrap_or("").to_string();
+    let body = resp.split("\r\n\r\n").nth(1).unwrap_or("").trim().to_string();
+    Ok((status, body))
+}
+
 fn main() {
     let a: Vec<String> = std::env::args().collect();
     if a.len() < 6 {
         eprintln!("usage: buzz-provision <secret> <public-origin> <host> <owner-pubkey> <port>");
         std::process::exit(2);
     }
-    let (secret, origin, host, owner, port) = (&a[1], a[2].trim_end_matches('/'), &a[3], &a[4], &a[5]);
-
+    let (secret, origin, host, owner, port_s) = (&a[1], a[2].trim_end_matches('/'), &a[3], &a[4], &a[5]);
+    let port = port_s.parse::<u16>().unwrap_or(3000);
     let keys = Keys::parse(secret).expect("parse owner secret");
-    let sign_url = format!("{origin}{PATH}");
-    let body = serde_json::json!({ "host": host, "initial_owner_pubkey": owner });
-    let body_bytes = serde_json::to_vec(&body).unwrap();
-    let auth = sign_nip98(&keys, "POST", &sign_url, &body_bytes);
 
-    // Test hook: emit the signed header and exit without touching the network,
-    // so the boot test can check the signing path without a live relay.
+    let invite_mode = std::env::var("BUZZ_MINT_INVITE").is_ok();
+    let path = if invite_mode { "/api/invites" } else { "/operator/communities" };
+    let body = if invite_mode {
+        // Long-lived so a printed link stays clickable; relay clamps to its max.
+        serde_json::json!({ "ttl_secs": 604800 })
+    } else {
+        serde_json::json!({ "host": host, "initial_owner_pubkey": owner })
+    };
+    let body_bytes = serde_json::to_vec(&body).unwrap();
+
+    // Test hook: emit the signed header and exit without touching the network.
     if std::env::var("BUZZ_PROVISION_PRINT_AUTH").is_ok() {
-        println!("{auth}");
+        println!("{}", sign_nip98(&keys, "POST", &format!("{origin}{path}"), &body_bytes));
         return;
     }
 
-    let req = format!(
-        "POST {PATH} HTTP/1.1\r\nHost: 127.0.0.1\r\nAuthorization: Nostr {auth}\r\n\
-         Content-Type: application/json\r\nContent-Length: {len}\r\nConnection: close\r\n\r\n",
-        len = body_bytes.len()
-    );
-
-    let mut stream = match TcpStream::connect(("127.0.0.1", port.parse::<u16>().unwrap_or(3000))) {
-        Ok(s) => s,
+    let (status, resp_body) = match post_signed(&keys, origin, path, &body_bytes, port) {
+        Ok(v) => v,
         Err(e) => {
             eprintln!("buzz-provision: cannot reach relay on 127.0.0.1:{port}: {e}");
             std::process::exit(1);
         }
     };
-    stream.write_all(req.as_bytes()).unwrap();
-    stream.write_all(&body_bytes).unwrap();
+    let ok = status.contains(" 200") || status.contains(" 201");
 
-    let mut resp = String::new();
-    stream.read_to_string(&mut resp).ok();
-    let status_line = resp.lines().next().unwrap_or("");
-    let ok = status_line.contains(" 200") || status_line.contains(" 201");
-    // The relay reports created vs existed in the body; surface it either way.
-    let body_out = resp.split("\r\n\r\n").nth(1).unwrap_or("").trim();
-    println!("buzz-provision {host}: {status_line} {body_out}");
+    if invite_mode {
+        // Print only the invite URL so the caller can drop it straight into a
+        // banner; stay silent-but-nonzero on failure.
+        if ok {
+            if let Some(url) = serde_json::from_str::<serde_json::Value>(&resp_body)
+                .ok()
+                .and_then(|v| v.get("url").and_then(|u| u.as_str()).map(String::from))
+            {
+                println!("{url}");
+                return;
+            }
+        }
+        eprintln!("buzz-provision: invite mint failed: {status} {resp_body}");
+        std::process::exit(1);
+    }
+
+    println!("buzz-provision {host}: {status} {resp_body}");
     if !ok {
         std::process::exit(1);
     }

@@ -217,6 +217,22 @@ else
        "the site origin plus tauri://localhost" "${cors:-<unset>}"
 fi
 
+# 16. Invite mode must sign a request against the invite endpoint, so the
+#     startup connect-link can be minted with the owner key.
+inv=$(docker run --rm -e BUZZ_PROVISION_PRINT_AUTH=1 -e BUZZ_MINT_INVITE=1 \
+  --entrypoint buzz-provision "$IMG" \
+  fa20c1ddcd070e332a2d3fb28e72196bcd1236fbe1262ff152c6ab77ed179c9e \
+  https://relay.example.app - \
+  8bc0b8a4ffaf6916f24fc7d35201e9fb33b26912cfc8426c2ec4e764aa312828 3000 2>&1)
+inv_decoded=$(printf '%s' "$inv" | base64 -d 2>/dev/null)
+if [[ "$inv_decoded" == *'https://relay.example.app/api/invites'* \
+   && "$inv_decoded" == *'"kind":27235'* ]]; then
+  pass "signs an invite request for the startup connect link"
+else
+  fail "signs an invite request for the startup connect link" \
+       "kind 27235 event signing the /api/invites URL" "${inv_decoded:0:200}"
+fi
+
 echo
 if [[ $FAILED -eq 0 ]]; then
   echo "boot_test: PASS"

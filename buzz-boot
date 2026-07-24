@@ -107,45 +107,59 @@ fi
 
 export RELAY_OWNER_PUBKEY BUZZ_BIND_ADDR BUZZ_HEALTH_PORT
 
-# Extra workspaces, the no-brainer path: a deployer lists community hostnames in
-# BUZZ_EXTRA_COMMUNITY_HOSTS (comma-separated) and points those domains at this
-# service. On every boot we create any that don't exist yet — idempotent, so
-# re-listing an existing one is a no-op. This needs the owner's secret to sign
-# the request, which we only have when the key was generated here; if the
-# deployer supplied their own pubkey instead, we log and skip.
-if [ -n "${BUZZ_EXTRA_COMMUNITY_HOSTS:-}" ]; then
-  if [ -f "$KEYFILE" ]; then
-    owner_secret=$(awk '/^Secret key:/{print $3}' "$KEYFILE")
-    app_port="${BUZZ_BIND_ADDR##*:}"
-    health_port="$BUZZ_HEALTH_PORT"
-    origin="${RELAY_OPERATOR_API_ORIGIN:-}"
-    owner_pub="$RELAY_OWNER_PUBKEY"
-    hosts="$BUZZ_EXTRA_COMMUNITY_HOSTS"
-    # Detached child: waits for the relay to be ready, then creates each host.
-    # It survives the exec below because it is already a separate process.
-    (
-      for _ in $(seq 1 60); do
-        if curl -fsS "http://127.0.0.1:${health_port}/_readiness" >/dev/null 2>&1; then
-          break
-        fi
-        sleep 2
-      done
+# After-boot owner tasks, both of which need the owner's secret to sign
+# requests — so they only run when the key was generated here (a supplied
+# pubkey leaves no secret on the box). A detached child waits for the relay to
+# be ready, then:
+#   1. Prints a one-click "open your workspace" link. Connecting a self-hosted
+#      relay by hand means minting an invite and pasting keys; this turns it
+#      into a single click in the deploy logs.
+#   2. Creates any extra workspaces listed in BUZZ_EXTRA_COMMUNITY_HOSTS
+#      (comma-separated) — idempotent, so re-listing one does nothing.
+if [ -f "$KEYFILE" ]; then
+  owner_secret=$(awk '/^Secret key:/{print $3}' "$KEYFILE")
+  ready_port="$BUZZ_HEALTH_PORT"
+  post_port="${BUZZ_BIND_ADDR##*:}"
+  api_origin="${RELAY_OPERATOR_API_ORIGIN:-}"
+  owner_pub="$RELAY_OWNER_PUBKEY"
+  extra_hosts="${BUZZ_EXTRA_COMMUNITY_HOSTS:-}"
+  # Detached: survives the exec below because it is already a separate process.
+  (
+    for _ in $(seq 1 60); do
+      curl -fsS "http://127.0.0.1:${ready_port}/_readiness" >/dev/null 2>&1 && break
+      sleep 2
+    done
+
+    link=$(BUZZ_MINT_INVITE=1 buzz-provision "$owner_secret" "$api_origin" - "$owner_pub" "$post_port" 2>/dev/null)
+    if [ -n "$link" ]; then
+      echo "buzz-boot: ============================================================"
+      echo "buzz-boot: Your workspace is ready. Open it in the Buzz app with one"
+      echo "buzz-boot: click — no keys to paste:"
+      echo "buzz-boot:"
+      echo "buzz-boot:   $link"
+      echo "buzz-boot:"
+      echo "buzz-boot: Get the app: https://github.com/block/buzz/releases/latest"
+      echo "buzz-boot: A fresh link is printed here every restart."
+      echo "buzz-boot: ============================================================"
+    fi
+
+    if [ -n "$extra_hosts" ]; then
       OLD_IFS="$IFS"; IFS=','
-      for host in $hosts; do
+      for host in $extra_hosts; do
         IFS="$OLD_IFS"
         host=$(echo "$host" | tr -d '[:space:]')
         [ -z "$host" ] && continue
-        buzz-provision "$owner_secret" "$origin" "$host" "$owner_pub" "$app_port" \
+        buzz-provision "$owner_secret" "$api_origin" "$host" "$owner_pub" "$post_port" \
           || echo "buzz-boot: could not create workspace '$host' (will retry next boot)"
         IFS=','
       done
       IFS="$OLD_IFS"
-    ) &
-  else
-    echo "buzz-boot: BUZZ_EXTRA_COMMUNITY_HOSTS is set but the owner key was" >&2
-    echo "buzz-boot: supplied, not generated, so there is no secret here to" >&2
-    echo "buzz-boot: create them with. Create extra workspaces from your own app." >&2
-  fi
+    fi
+  ) &
+elif [ -n "${BUZZ_EXTRA_COMMUNITY_HOSTS:-}" ]; then
+  echo "buzz-boot: BUZZ_EXTRA_COMMUNITY_HOSTS is set but the owner key was" >&2
+  echo "buzz-boot: supplied, not generated, so there is no secret here to" >&2
+  echo "buzz-boot: create them with. Create extra workspaces from your own app." >&2
 fi
 
 exec "$@"
