@@ -44,6 +44,17 @@ else
        "RELAY_OWNER_PUBKEY matching ^[0-9a-f]{64}$" "${generated:-<unset>}"
 fi
 
+# 1b. The owner field is required at deploy, so the escape hatch for people who
+#     don't want to make an identity first is the literal word "generate". It
+#     must route to the same key-generation path as a blank value.
+gen_word=$(owner_of "$(run_env -e "RELAY_OWNER_PUBKEY=generate")")
+if [[ "$gen_word" =~ ^[0-9a-f]{64}$ ]]; then
+  pass "treats the word 'generate' as a request to make a key"
+else
+  fail "treats the word 'generate' as a request to make a key" \
+       "a generated 64-hex owner key" "${gen_word:-<unset>}"
+fi
+
 # 2. Same volume, second boot: the owner must not change. A fresh key on every
 #    restart would lock the operator out of their own relay.
 second=$(owner_of "$(run_env)")
