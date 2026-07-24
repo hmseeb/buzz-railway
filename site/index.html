@@ -149,6 +149,11 @@
 
   
 
+  /* Screenshot */
+  .shot { margin: 40px 0 0; max-width: 760px; }
+  .shot img { width: 100%; border: 1px solid var(--line-2); border-radius: var(--radius); display: block; }
+  .shot figcaption { margin-top: 12px; font-size: 0.9rem; color: var(--muted); line-height: 1.5; }
+
   /* CTA band */
   .band { text-align: center; padding: 96px 0; }
   .band h2 { margin: 0 auto 24px; }
@@ -231,6 +236,11 @@
         <p>Railway gives your server a web address. In the app, add a community and point it at that address. You are in, as the owner, with the key that never left your device.</p>
       </div>
     </div>
+
+    <figure class="shot">
+      <img src="copy-public-id.png" alt="The Copy your public ID button on the Buzz join screen" loading="lazy" />
+      <figcaption>Step 2, exactly: when the app asks you to join a community, click <b>Copy your public ID</b>. That is the key you paste when you deploy, never the private one.</figcaption>
+    </figure>
   </div>
 </section>
 

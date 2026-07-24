@@ -68,13 +68,21 @@ anything sensitive in the logs:
    [releases page](https://github.com/block/buzz/releases/latest) (macOS
    `.dmg`, Windows `.exe`, Linux `.AppImage`/`.deb`). Open it and choose
    **Create a new identity key**. The app keeps the private part on your device.
-2. In the app, open your profile and copy your public key (it starts with
-   `npub`). This is safe to share, like an email address.
+2. Right after you make your identity, the app asks you to join a community. On
+   that screen, click **Copy your public ID** (see the picture below). That is
+   your public key, starting with `npub`, and it is safe to share. Do not use
+   the key shown on the create-identity screen, that one is private.
 3. When you deploy, paste that `npub` into the **RELAY_OWNER_PUBKEY** field.
    That makes you the owner.
 4. After it deploys, copy the Buzz service's address from Railway (looks like
    `buzz-production-xxxx.up.railway.app`). In the app, add a community and point
    it at `wss://` plus that address. You are in, as the owner.
+
+**Which button to click, exactly:**
+
+![The Copy your public ID button on the Buzz join screen](https://hmseeb.github.io/buzz-railway/copy-public-id.png)
+
+Full walkthrough with pictures: [hmseeb.github.io/buzz-railway](https://hmseeb.github.io/buzz-railway#setup)
 
 There is no password reset, so back up your key from the app (Settings) and
 keep it somewhere safe.
