@@ -74,13 +74,20 @@ anything sensitive in the logs:
    the key shown on the create-identity screen, that one is private.
 3. When you deploy, paste that `npub` into the **RELAY_OWNER_PUBKEY** field.
    That makes you the owner.
-4. After it deploys, copy the Buzz service's address from Railway (looks like
-   `buzz-production-xxxx.up.railway.app`). In the app, add a community and point
-   it at `wss://` plus that address. You are in, as the owner.
+4. When the deploy finishes, open the Buzz service's address from Railway in a
+   browser (looks like `buzz-production-xxxx.up.railway.app`). You will see the
+   empty-community page below. Click **Open in Buzz** — the app opens and
+   connects you as the owner, with nothing to type. If nothing happens, the app
+   is not installed yet; you can also add the community by hand in the app using
+   `wss://` plus that same address.
 
 **Which button to click, exactly:**
 
 ![The Copy your public ID button on the Buzz join screen](https://hmseeb.github.io/buzz-railway/copy-public-id.png)
+
+**And after it deploys, at your server's address:**
+
+![The empty-community page, with an Open in Buzz button](https://hmseeb.github.io/buzz-railway/open-in-buzz.png)
 
 Full walkthrough with pictures: [hmseeb.github.io/buzz-railway](https://hmseeb.github.io/buzz-railway#setup)
 

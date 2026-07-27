@@ -144,6 +144,10 @@
   .step p { margin: 0; color: var(--ink-2); font-size: 0.99rem; line-height: 1.5; }
   .step a.inl { border-bottom: 2px solid var(--zest); font-weight: 500; white-space: nowrap; }
   .step a.inl:hover { background: var(--zest); }
+  .step-shot { margin: 16px 0 0; }
+  .step-shot img { width: 100%; display: block; border-radius: var(--r); border: 1px solid var(--line-2); box-shadow: 0 24px 48px -30px rgba(20,21,13,.4); }
+  .step-shot figcaption { margin-top: 11px; font-size: 0.88rem; color: var(--ink-3); line-height: 1.5; }
+  .step p.step-aside { margin-top: 14px; font-size: 0.9rem; color: var(--ink-3); }
   .kbd { font-family: var(--mono); font-size: 0.86em; background: var(--paper-2); border: 1px solid var(--line-2); border-radius: 6px; padding: 1px 6px; }
 
   /* Boot: horizontal stepper */
@@ -260,8 +264,13 @@
         <div class="step">
           <div class="step-n mono"><b>04</b></div>
           <div>
-            <h3>Connect the app to it</h3>
-            <p>Railway gives your server a web address. In the app, add a community pointed at it. You are in, as the owner, with the key that never left your device.</p>
+            <h3>Open your address, click one button</h3>
+            <p>When the deploy finishes, Railway shows your server's web address. Open it in a browser and you land on the page below. Click <b>Open in Buzz</b> and the app connects you as the owner, with the key that never left your device. Nothing to type.</p>
+            <figure class="step-shot">
+              <img src="open-in-buzz.png" alt="The empty-community page, with an Open in Buzz button" loading="lazy" width="1120" height="642" />
+              <figcaption>What your address looks like in a browser before anyone has pushed anything. One click and you're in.</figcaption>
+            </figure>
+            <p class="step-aside">Nothing happens on click? The app isn't installed yet. You can also add it by hand in the app, using <span class="kbd">wss://</span> in front of that same address.</p>
           </div>
         </div>
       </div>
