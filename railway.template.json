@@ -5,6 +5,7 @@
   "services": {
     "buzz": {
       "name": "Buzz",
+      "icon": "https://hmseeb.github.io/buzz-railway/buzz-icon.png",
       "source": {
         "image": "ghcr.io/hmseeb/buzz-railway:latest"
       },
@@ -88,6 +89,7 @@
     },
     "minio": {
       "name": "MinIO",
+      "icon": "https://hmseeb.github.io/buzz-railway/minio-icon.png",
       "source": {
         "image": "ghcr.io/hmseeb/buzz-railway-minio:latest"
       },
