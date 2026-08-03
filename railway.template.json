@@ -20,16 +20,46 @@
         }
       },
       "variables": {
-        "PORT": "3000",
-        "BUZZ_RELAY_PRIVATE_KEY": "${{secret(64, 'abcdef0123456789')}}",
-        "BUZZ_GIT_HOOK_HMAC_SECRET": "${{secret(64, 'abcdef0123456789')}}",
-        "BUZZ_CORS_ORIGINS": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
-        "BUZZ_MEDIA_BASE_URL": "https://${{RAILWAY_PUBLIC_DOMAIN}}/media",
-        "RELAY_URL": "wss://${{RAILWAY_PUBLIC_DOMAIN}}",
-        "BUZZ_S3_ENDPOINT": "http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:9000",
-        "BUZZ_S3_SECRET_KEY": "${{MinIO.MINIO_ROOT_PASSWORD}}",
-        "DATABASE_URL": "${{Postgres.DATABASE_URL}}",
-        "REDIS_URL": "${{Redis.REDIS_URL}}",
+        "PORT": {
+          "defaultValue": "3000",
+          "description": "The port the Buzz server listens on inside its container. Leave this alone."
+        },
+        "BUZZ_RELAY_PRIVATE_KEY": {
+          "defaultValue": "${{secret(64, 'abcdef0123456789')}}",
+          "description": "The private identity of the server itself, generated fresh for your deployment. Never share it and never change it after launch."
+        },
+        "BUZZ_GIT_HOOK_HMAC_SECRET": {
+          "defaultValue": "${{secret(64, 'abcdef0123456789')}}",
+          "description": "A shared password that lets your code repositories prove that git updates really came from them. Generated fresh for your deployment."
+        },
+        "BUZZ_CORS_ORIGINS": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "Which websites are allowed to talk to your Buzz server from a browser. Defaults to your own domain, which is what you want."
+        },
+        "BUZZ_MEDIA_BASE_URL": {
+          "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}/media",
+          "description": "The public web address that uploaded images and files are served from. Filled in automatically from this service's domain."
+        },
+        "RELAY_URL": {
+          "defaultValue": "wss://${{RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "The public address other people and apps use to reach your Buzz server. Filled in automatically from this service's domain."
+        },
+        "BUZZ_S3_ENDPOINT": {
+          "defaultValue": "http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:9000",
+          "description": "Where Buzz stores uploaded files and images. Points at the private address of the MinIO service. Filled in automatically."
+        },
+        "BUZZ_S3_SECRET_KEY": {
+          "defaultValue": "${{MinIO.MINIO_ROOT_PASSWORD}}",
+          "description": "The password Buzz uses to reach its file storage. Copied automatically from the MinIO service."
+        },
+        "DATABASE_URL": {
+          "defaultValue": "${{Postgres.DATABASE_URL}}",
+          "description": "Where Buzz finds its Postgres database. Filled in automatically from the Postgres service."
+        },
+        "REDIS_URL": {
+          "defaultValue": "${{Redis.REDIS_URL}}",
+          "description": "Where Buzz finds its Redis cache. Filled in automatically from the Redis service."
+        },
         "RELAY_OWNER_PUBKEY": {
           "description": "Your Buzz public key goes here. New to Buzz? (1) Download the app from github.com/block/buzz/releases/latest and open it. (2) Choose 'Create a new identity key'. (3) On the next screen ('Join a community'), click the 'Copy your public ID' button. (4) Paste it here. It starts with 'npub' and is safe to share, like an email address. Full walkthrough with pictures: hmseeb.github.io/buzz-railway#setup . When the deploy finishes, open this service's URL in a browser and click 'Open in Buzz' to connect the app. Don't want to install the app first? Type the word generate and a key is made for you."
         }
@@ -51,10 +81,22 @@
         "restartPolicyMaxRetries": 10
       },
       "variables": {
-        "PGDATA": "/var/lib/postgresql/data",
-        "POSTGRES_DB": "buzz",
-        "POSTGRES_PASSWORD": "${{secret(32)}}",
-        "POSTGRES_USER": "buzz"
+        "PGDATA": {
+          "defaultValue": "/var/lib/postgresql/data",
+          "description": "The folder on disk where the database keeps your data. Leave this alone."
+        },
+        "POSTGRES_DB": {
+          "defaultValue": "buzz",
+          "description": "The name of the database created on first launch."
+        },
+        "POSTGRES_PASSWORD": {
+          "defaultValue": "${{secret(32)}}",
+          "description": "The database password, generated fresh for your deployment. Never share it."
+        },
+        "POSTGRES_USER": {
+          "defaultValue": "buzz",
+          "description": "The database account created on first launch."
+        }
       },
       "volumeMounts": [
         {
@@ -77,8 +119,14 @@
         "restartPolicyMaxRetries": 10
       },
       "variables": {
-        "REDIS_PASSWORD": "${{secret(32)}}",
-        "REDIS_URL": "redis://:${{REDIS_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:6379"
+        "REDIS_PASSWORD": {
+          "defaultValue": "${{secret(32)}}",
+          "description": "The cache password, generated fresh for your deployment. Never share it."
+        },
+        "REDIS_URL": {
+          "defaultValue": "redis://:${{REDIS_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:6379",
+          "description": "The full private connection details for the cache, assembled from the other settings here. This is what Buzz actually reads."
+        }
       },
       "volumeMounts": [
         {
@@ -99,9 +147,18 @@
         "restartPolicyMaxRetries": 10
       },
       "variables": {
-        "PORT": "9000",
-        "MINIO_ROOT_PASSWORD": "${{secret(32)}}",
-        "MINIO_DOMAIN": "${{RAILWAY_PRIVATE_DOMAIN}}"
+        "PORT": {
+          "defaultValue": "9000",
+          "description": "The port the file storage service listens on inside its container. Leave this alone."
+        },
+        "MINIO_ROOT_PASSWORD": {
+          "defaultValue": "${{secret(32)}}",
+          "description": "The admin password for your file storage. Generated fresh for your deployment. Buzz picks it up automatically."
+        },
+        "MINIO_DOMAIN": {
+          "defaultValue": "${{RAILWAY_PRIVATE_DOMAIN}}",
+          "description": "The private address other services use to reach file storage. Filled in automatically."
+        }
       },
       "volumeMounts": [
         {
