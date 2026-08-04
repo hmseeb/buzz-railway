@@ -110,5 +110,19 @@ inside the app.
 at the Buzz service. Each is created automatically on the next restart, up to
 three per owner.
 
+**Deployed before August 2026 and mobile pairing fails?** Pairing the mobile
+app needs a small helper service that older deploys don't have — template
+updates don't reach projects that are already deployed, so add it once by hand:
+
+1. In your project, add a new service from the Docker image
+   `ghcr.io/hmseeb/buzz-railway:latest`, set its start command to
+   `buzz-pair-relay`, add a variable `BUZZ_PAIR_RELAY_BIND_ADDR` set to
+   `0.0.0.0:5000`, and generate a public domain for it targeting port 5000.
+2. On the Buzz service, add a variable `BUZZ_PAIRING_RELAY_URL` set to `wss://`
+   plus the domain from step 1. Saving restarts the server for a few seconds.
+
+That's it — the desktop app finds the helper on its own afterwards. Deploys
+made after August 2026 include it already.
+
 Buzz is built by [Block, Inc.](https://github.com/block/buzz) and licensed
 Apache-2.0. This template only packages it for Railway.
