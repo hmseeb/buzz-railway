@@ -11,6 +11,22 @@ KEYFILE="$KEYDIR/.owner-key"
 
 die() { echo "buzz-boot: $*" >&2; exit 1; }
 
+# The pairing sidecar is stateless: no owner key, no volume, no database. Only
+# the relay gets the owner-resolution treatment below — dragging the sidecar
+# through it would mint an unrelated keypair and print its secret into the
+# pairing service's logs on every boot. Drop root, repair the bind address
+# (upstream defaults to loopback, which the platform edge cannot reach), and
+# hand off.
+if [ "${1:-}" = "buzz-pair-relay" ]; then
+  if [ "$(id -u)" = "0" ]; then
+    exec setpriv --reuid=1000 --regid=1000 --init-groups "$0" "$@"
+  fi
+  if [[ ! "${BUZZ_PAIR_RELAY_BIND_ADDR:-}" =~ :[0-9]+$ ]]; then
+    export BUZZ_PAIR_RELAY_BIND_ADDR="0.0.0.0:${PORT:-5000}"
+  fi
+  exec "$@"
+fi
+
 # Railway mounts volumes owned by root, but the relay runs as uid 1000 and so
 # cannot create its own data directory. Fix ownership while we still have the
 # privileges to do it, then immediately drop back and re-enter this script.

@@ -23,7 +23,7 @@ second bill.
 
 ## Why Deploy Buzz on Railway?
 
-Buzz needs four coordinated services and persistent storage for three of them,
+Buzz needs five coordinated services and persistent storage for three of them,
 which normally means a VPS, a Docker Compose file, TLS certificates, and a
 backup plan. Railway provisions and networks all of it in one click, hands you
 HTTPS and a domain, and takes daily database backups.
@@ -47,8 +47,10 @@ ships roughly daily.
 - **Postgres** — the event store and full-text search index.
 - **Redis** — live fan-out, presence, and typing indicators.
 - **MinIO** — S3-compatible storage for uploaded media and git objects.
+- **Pairing** — a small stateless helper the desktop app uses to link the Buzz
+  mobile app by QR code.
 
-All three are included in this template and wired up automatically.
+All four are included in this template and wired up automatically.
 
 ### Deployment Dependencies
 
