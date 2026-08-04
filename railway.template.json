@@ -44,6 +44,10 @@
           "defaultValue": "wss://${{RAILWAY_PUBLIC_DOMAIN}}",
           "description": "The public address other people and apps use to reach your Buzz server. Filled in automatically from this service's domain."
         },
+        "BUZZ_PAIRING_RELAY_URL": {
+          "defaultValue": "wss://${{Pairing.RAILWAY_PUBLIC_DOMAIN}}",
+          "description": "The public address of the mobile-pairing helper service, advertised to the desktop app so 'Pair Mobile Device' works. Filled in automatically from the Pairing service's domain."
+        },
         "BUZZ_S3_ENDPOINT": {
           "defaultValue": "http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:9000",
           "description": "Where Buzz stores uploaded files and images. Points at the private address of the MinIO service. Filled in automatically."
@@ -70,6 +74,33 @@
           "volumeName": "buzz-data"
         }
       ]
+    },
+    "pairing": {
+      "name": "Pairing",
+      "icon": "https://hmseeb.github.io/buzz-railway/buzz-icon.png",
+      "source": {
+        "image": "ghcr.io/hmseeb/buzz-railway:latest"
+      },
+      "deploy": {
+        "startCommand": "buzz-pair-relay",
+        "restartPolicyType": "ON_FAILURE",
+        "restartPolicyMaxRetries": 10
+      },
+      "networking": {
+        "serviceDomains": {
+          "buzz-pairing": {}
+        }
+      },
+      "variables": {
+        "PORT": {
+          "defaultValue": "5000",
+          "description": "The port the pairing helper listens on inside its container. Leave this alone."
+        },
+        "BUZZ_PAIR_RELAY_BIND_ADDR": {
+          "defaultValue": "0.0.0.0:${{PORT}}",
+          "description": "The address the pairing helper listens on. Filled in automatically. Leave this alone."
+        }
+      }
     },
     "postgres": {
       "name": "Postgres",
@@ -173,6 +204,10 @@
       "buzz": {
         "x": 0,
         "y": 0
+      },
+      "pairing": {
+        "x": 280,
+        "y": -180
       },
       "postgres": {
         "x": -280,

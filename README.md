@@ -9,8 +9,8 @@ image that makes a zero-input deploy actually work.
 
 ## What you get
 
-The relay with its bundled web UI, Postgres, Redis, and MinIO for media. Five
-services, one URL, no configuration required.
+The relay with its bundled web UI, a mobile-pairing helper, Postgres, Redis,
+and MinIO for media. Five services, one URL, no configuration required.
 
 ## Why a wrapper image
 
@@ -31,6 +31,13 @@ So `buzz-boot` runs first and either:
 
 It then `exec`s the relay. The behaviour is pinned by
 [`test/boot_test.sh`](test/boot_test.sh), which runs in CI before publish.
+
+The same image also runs the Pairing service with `buzz-pair-relay` as the
+command. Mobile pairing is served by that sidecar, not the relay — `buzz-boot`
+hands off to it directly (no owner key, no volume) and rebinds it from
+upstream's loopback default to `$PORT`, while `BUZZ_PAIRING_RELAY_URL` on the
+relay advertises its address via NIP-11 so the desktop app finds it instead of
+falling back to a `/pair` path nothing serves.
 
 ## Pinning
 

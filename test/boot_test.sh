@@ -266,6 +266,52 @@ else
        "kind 27235 event signing the /api/invites URL" "${inv_decoded:0:200}"
 fi
 
+# 17. The pairing sidecar: mobile pairing is served by buzz-pair-relay, not the
+#     relay itself. Run as a second Railway service it must (a) bind publicly —
+#     upstream defaults to loopback, which the platform edge cannot reach — and
+#     (b) answer a WebSocket upgrade. Without both, desktop pairing dies on 404.
+PAIR_NAME="buzz-pair-test-$$"
+docker run -d --rm --name "$PAIR_NAME" -e PORT=5000 -p 127.0.0.1:15000:5000 \
+  "$IMG" buzz-pair-relay >/dev/null 2>&1
+pair_status=""
+for _ in $(seq 1 15); do
+  pair_status=$(curl -s -o /dev/null -w '%{http_code}' \
+    -H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+    -H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==' \
+    http://127.0.0.1:15000/ 2>/dev/null)
+  [[ "$pair_status" == "101" ]] && break
+  sleep 1
+done
+pair_logs=$(docker logs "$PAIR_NAME" 2>&1)
+docker rm -f "$PAIR_NAME" >/dev/null 2>&1 || true
+if [[ "$pair_status" == "101" ]]; then
+  pass "pairing sidecar binds \$PORT publicly and accepts a WebSocket upgrade"
+else
+  fail "pairing sidecar binds \$PORT publicly and accepts a WebSocket upgrade" \
+       "HTTP 101 from the mapped port" \
+       "status=${pair_status:-<none>} logs=$(echo "$pair_logs" | tail -3)"
+fi
+
+# 17b. The sidecar is stateless and owns no volume, so the boot script must not
+#      drag it through owner-key resolution: minting a keypair there prints an
+#      unrelated nsec into the pairing service's logs every boot.
+if [[ "$pair_logs" != *nsec1* && "$pair_logs" != *"owner"* ]]; then
+  pass "pairing sidecar skips owner-key resolution (no key material in logs)"
+else
+  fail "pairing sidecar skips owner-key resolution (no key material in logs)" \
+       "logs free of nsec/owner-key banners" "$(echo "$pair_logs" | head -6)"
+fi
+
+# 18. The relay must understand BUZZ_PAIRING_RELAY_URL, or the template cannot
+#     advertise the sidecar and desktop clients fall back to the 404 /pair
+#     guess. Guards future digest bumps against losing the knob.
+if docker run --rm --entrypoint grep "$IMG" -q BUZZ_PAIRING_RELAY_URL /usr/local/bin/buzz-relay; then
+  pass "relay binary supports advertising a pairing relay URL"
+else
+  fail "relay binary supports advertising a pairing relay URL" \
+       "BUZZ_PAIRING_RELAY_URL present in the relay binary" "not found"
+fi
+
 echo
 if [[ $FAILED -eq 0 ]]; then
   echo "boot_test: PASS"
