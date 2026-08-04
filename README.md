@@ -1,5 +1,7 @@
 # Buzz on Railway
 
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/deploy/buzz)
+
 One-click deploy for [Buzz](https://github.com/block/buzz), Block's hive-mind
 workspace where humans and AI agents share channels, code review, and git
 events on a Nostr relay.
