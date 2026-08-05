@@ -58,7 +58,3 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:latest
             ghcr.io/${{ github.repository_owner }}/${{ matrix.image }}:${{ github.sha }}
-
-# ponytail: no automatic upstream-digest bump yet. Upstream ships ~daily with no
-# semver tags on GHCR, so the FROM digest is bumped by hand. Automate with a
-# scheduled job that opens a PR when the cadence gets annoying.

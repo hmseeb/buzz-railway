@@ -1,0 +1,56 @@
+name: upstream-bump
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'  # weekly is enough churn; upstream ships ~daily
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # .Manifest.Digest is the multi-arch index digest — the same value
+      # docker pull resolves, so it is what FROM must pin.
+      - name: Resolve upstream digest
+        id: d
+        run: |
+          new=$(docker buildx imagetools inspect ghcr.io/block/buzz:main --format '{{.Manifest.Digest}}')
+          old=$(grep -oE 'sha256:[0-9a-f]{64}' Dockerfile)
+          echo "new=$new" >> "$GITHUB_OUTPUT"
+          echo "old=$old" >> "$GITHUB_OUTPUT"
+          echo "changed=$([ "$new" != "$old" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
+
+      - name: Update Dockerfile
+        if: steps.d.outputs.changed == 'true'
+        run: |
+          sed -i 's|${{ steps.d.outputs.old }}|${{ steps.d.outputs.new }}|' Dockerfile
+          sed -i "s|:main as of [0-9-]*|:main as of $(date -u +%F)|" Dockerfile
+
+      # PRs opened with GITHUB_TOKEN trigger no workflows, so this test — not
+      # PR CI — is the gate on the new digest. A red run here means upstream
+      # broke the boot contract; no PR is opened.
+      - name: Contract test
+        if: steps.d.outputs.changed == 'true'
+        run: |
+          docker build -t buzz-railway:test .
+          ./test/boot_test.sh buzz-railway:test
+
+      - uses: peter-evans/create-pull-request@v7
+        if: steps.d.outputs.changed == 'true'
+        with:
+          # not `upstream-digest` — that branch exists on the remote and this
+          # action force-pushes its branch on every new digest
+          branch: bump/buzz-digest
+          delete-branch: true
+          commit-message: 'Bump ghcr.io/block/buzz digest to ${{ steps.d.outputs.new }}'
+          title: Bump upstream buzz digest
+          body: |
+            `${{ steps.d.outputs.old }}` → `${{ steps.d.outputs.new }}`
+
+            Contract test passed in the bump run (PRs from GITHUB_TOKEN get no CI).
