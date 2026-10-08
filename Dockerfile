@@ -10,8 +10,8 @@ WORKDIR /build
 COPY provision/ .
 RUN cargo build --release && strip target/release/buzz-provision
 
-# digest = ghcr.io/block/buzz:main as of 2026-09-21
-FROM ghcr.io/block/buzz@sha256:4a8c93245921a891832b12fc35dbf364a419175b24af46ecdb5939a166d8aa26
+# digest = ghcr.io/block/buzz:main as of 2026-10-05
+FROM ghcr.io/block/buzz@sha256:85caf3562e14ae00bf176afb3396f7c7c277f3c950f7fd762eca79d5b07fc8a9
 
 # Without this the image inherits upstream's source label and GHCR attributes
 # the package to block/buzz rather than to this repo.
