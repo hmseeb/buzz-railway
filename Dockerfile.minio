@@ -1,6 +1,7 @@
 # MinIO with its server command and bucket creation baked in, so the Railway
 # template needs no startCommand and no separate init service.
-FROM minio/minio:RELEASE.2025-09-07T16-13-09Z
+# Upstream minio/minio was pulled from Docker Hub; pgsty/minio is a maintained drop-in fork (ships mc).
+FROM pgsty/minio:RELEASE.2026-08-04T00-00-00Z
 
 LABEL org.opencontainers.image.title="MinIO for Buzz on Railway" \
       org.opencontainers.image.description="MinIO that starts unattended and creates the Buzz media bucket" \
