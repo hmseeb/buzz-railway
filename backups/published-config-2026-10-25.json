@@ -1,0 +1,312 @@
+{
+ "buckets": {},
+ "services": {
+  "36d98706-e198-487e-8e3c-a6e1b7035141": {
+   "icon": "https://cdn.sanity.io/images/sy1jschh/production/0ce0bfdcfbdbf69662b1116671f97c2dd788b655-157x157.svg",
+   "name": "Redis",
+   "deploy": {
+    "startCommand": "/bin/sh -c \"rm -rf $RAILWAY_VOLUME_MOUNT_PATH/lost+found/ && exec docker-entrypoint.sh redis-server --requirepass $REDIS_PASSWORD --save 60 1 --dir $RAILWAY_VOLUME_MOUNT_PATH\"",
+    "healthcheckPath": null,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+   },
+   "source": {
+    "image": "redis:8.2.1"
+   },
+   "variables": {
+    "REDISHOST": {
+     "isOptional": false,
+     "defaultValue": "${{RAILWAY_PRIVATE_DOMAIN}}"
+    },
+    "REDISPORT": {
+     "isOptional": false,
+     "defaultValue": "6379"
+    },
+    "REDISUSER": {
+     "isOptional": false,
+     "defaultValue": "default"
+    },
+    "REDIS_URL": {
+     "isOptional": false,
+     "defaultValue": "redis://${{REDISUSER}}:${{REDIS_PASSWORD}}@${{REDISHOST}}:${{REDISPORT}}"
+    },
+    "REDISPASSWORD": {
+     "isOptional": false,
+     "defaultValue": "${{REDIS_PASSWORD}}"
+    },
+    "REDIS_PASSWORD": {
+     "isOptional": false,
+     "defaultValue": "${{ secret(32, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\") }}"
+    },
+    "REDIS_PUBLIC_URL": {
+     "isOptional": false,
+     "defaultValue": "redis://default:${{REDIS_PASSWORD}}@${{RAILWAY_TCP_PROXY_DOMAIN}}:${{RAILWAY_TCP_PROXY_PORT}}"
+    }
+   },
+   "volumeMounts": {
+    "36d98706-e198-487e-8e3c-a6e1b7035141": {
+     "mountPath": "/data"
+    }
+   },
+   "haTemplateCode": "redis-ha",
+   "haConversionConfig": {
+    "edge": {
+     "label": "Reverse Proxies",
+     "options": [
+      1,
+      2
+     ],
+     "nodeLabel": "HAProxy",
+     "description": "HAProxy instances routing writes to the primary",
+     "defaultValue": 2
+    },
+    "replica": {
+     "label": "Redis Replicas",
+     "options": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "nodeLabel": "Redis",
+     "description": "Nodes running Redis + colocated Sentinel",
+     "defaultValue": 2
+    },
+    "internal": null,
+    "description": "This will convert your Redis instance to an HA cluster with Sentinel failover and HAProxy routing to the primary."
+   }
+  },
+  "4d59f156-1d20-4645-b079-de53f5cb50e1": {
+   "icon": "https://hmseeb.github.io/buzz-railway/buzz-icon.png",
+   "name": "buzz",
+   "deploy": {
+    "startCommand": null,
+    "healthcheckPath": null,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+   },
+   "source": {
+    "image": "ghcr.io/hmseeb/buzz-railway:latest"
+   },
+   "variables": {
+    "PORT": {
+     "isOptional": false,
+     "defaultValue": "3000"
+    },
+    "REDIS_URL": {
+     "isOptional": false,
+     "defaultValue": "${{Redis.REDIS_URL}}"
+    },
+    "RELAY_URL": {
+     "isOptional": false,
+     "defaultValue": "wss://${{RAILWAY_PUBLIC_DOMAIN}}"
+    },
+    "DATABASE_URL": {
+     "isOptional": false,
+     "defaultValue": "${{Postgres.DATABASE_URL}}"
+    },
+    "BUZZ_S3_ENDPOINT": {
+     "isOptional": false,
+     "defaultValue": "http://${{MinIO.RAILWAY_PRIVATE_DOMAIN}}:9000"
+    },
+    "BUZZ_CORS_ORIGINS": {
+     "isOptional": false,
+     "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}"
+    },
+    "BUZZ_S3_SECRET_KEY": {
+     "isOptional": false,
+     "defaultValue": "${{MinIO.MINIO_ROOT_PASSWORD}}"
+    },
+    "RELAY_OWNER_PUBKEY": {
+     "isOptional": false,
+     "description": "Your Buzz public key goes here. New to Buzz? (1) Download the app from github.com/block/buzz/releases/latest and open it. (2) Choose 'Create a new identity key'. (3) On the next screen ('Join a community'), click the 'Copy your public ID' button. (4) Paste it here. It starts with 'npub' and is safe to share, like an email address. Full walkthrough with pictures: hmseeb.github.io/buzz-railway#setup . When the deploy finishes, open this service's URL in a browser and click 'Open in Buzz' to connect the app. Don't want to install the app first? Type the word generate and a key is made for you.",
+     "defaultValue": ""
+    },
+    "BUZZ_MEDIA_BASE_URL": {
+     "isOptional": false,
+     "defaultValue": "https://${{RAILWAY_PUBLIC_DOMAIN}}/media"
+    },
+    "BUZZ_PAIRING_RELAY_URL": {
+     "isOptional": false,
+     "description": "",
+     "defaultValue": "wss://${{Pairing.RAILWAY_PUBLIC_DOMAIN}}"
+    },
+    "BUZZ_RELAY_PRIVATE_KEY": {
+     "isOptional": false,
+     "defaultValue": "${{secret(64, 'abcdef0123456789')}}"
+    },
+    "BUZZ_GIT_HOOK_HMAC_SECRET": {
+     "isOptional": false,
+     "defaultValue": "${{secret(64, 'abcdef0123456789')}}"
+    }
+   },
+   "networking": {
+    "serviceDomains": {
+     "<hasDomain>": {}
+    }
+   },
+   "volumeMounts": {
+    "4d59f156-1d20-4645-b079-de53f5cb50e1": {
+     "mountPath": "/data"
+    }
+   }
+  },
+  "4f000a74-2801-4c1f-b65f-d26f4d06d3f3": {
+   "icon": "https://devicons.railway.app/i/postgresql.svg",
+   "name": "Postgres",
+   "deploy": {
+    "startCommand": null,
+    "healthcheckPath": null,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+   },
+   "source": {
+    "image": "ghcr.io/railwayapp-templates/postgres-ssl:18"
+   },
+   "variables": {
+    "PGDATA": {
+     "isOptional": false,
+     "defaultValue": "/var/lib/postgresql/data/pgdata"
+    },
+    "PGHOST": {
+     "isOptional": false,
+     "defaultValue": "${{RAILWAY_PRIVATE_DOMAIN}}"
+    },
+    "PGPORT": {
+     "isOptional": false,
+     "defaultValue": "5432"
+    },
+    "PGUSER": {
+     "isOptional": false,
+     "defaultValue": "${{POSTGRES_USER}}"
+    },
+    "PGDATABASE": {
+     "isOptional": false,
+     "defaultValue": "${{POSTGRES_DB}}"
+    },
+    "PGPASSWORD": {
+     "isOptional": false,
+     "defaultValue": "${{POSTGRES_PASSWORD}}"
+    },
+    "POSTGRES_DB": {
+     "isOptional": false,
+     "defaultValue": "railway"
+    },
+    "DATABASE_URL": {
+     "isOptional": false,
+     "defaultValue": "postgresql://${{PGUSER}}:${{POSTGRES_PASSWORD}}@${{RAILWAY_PRIVATE_DOMAIN}}:5432/${{PGDATABASE}}"
+    },
+    "POSTGRES_USER": {
+     "isOptional": false,
+     "defaultValue": "postgres"
+    },
+    "SSL_CERT_DAYS": {
+     "isOptional": false,
+     "defaultValue": "820"
+    },
+    "POSTGRES_PASSWORD": {
+     "isOptional": false,
+     "defaultValue": "${{ secret(32, \"abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ\") }}"
+    },
+    "DATABASE_PUBLIC_URL": {
+     "isOptional": false,
+     "defaultValue": "postgresql://${{PGUSER}}:${{POSTGRES_PASSWORD}}@${{RAILWAY_TCP_PROXY_DOMAIN}}:${{RAILWAY_TCP_PROXY_PORT}}/${{PGDATABASE}}"
+    },
+    "RAILWAY_DEPLOYMENT_DRAINING_SECONDS": {
+     "isOptional": false,
+     "defaultValue": "60"
+    }
+   },
+   "volumeMounts": {
+    "4f000a74-2801-4c1f-b65f-d26f4d06d3f3": {
+     "mountPath": "/var/lib/postgresql/data"
+    }
+   },
+   "haTemplateCode": "postgres-ha",
+   "haConversionConfig": {
+    "edge": {
+     "label": "Reverse Proxy",
+     "options": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "nodeLabel": "HAProxy",
+     "description": "Routes traffic to the primary",
+     "defaultValue": 3
+    },
+    "replica": {
+     "label": "Replicas",
+     "options": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+     ],
+     "nodeLabel": "Postgres",
+     "description": "Streaming replicas for automatic failover",
+     "defaultValue": 2
+    },
+    "internal": {
+     "label": "Coordinator Nodes",
+     "options": [
+      3,
+      5,
+      7,
+      9
+     ],
+     "nodeLabel": "etcd",
+     "defaultValue": 3
+    },
+    "description": "This will convert your Postgres database to an HA cluster with Patroni failover and etcd consensus."
+   }
+  },
+  "c43766db-17c0-4320-a31f-d9e17f34ccb3": {
+   "name": "hmseeb/buzz-railway:latest",
+   "deploy": {
+    "startCommand": "buzz-pair-relay"
+   },
+   "source": {
+    "image": "ghcr.io/hmseeb/buzz-railway:latest"
+   },
+   "variables": {
+    "PORT": {
+     "isOptional": false,
+     "description": "",
+     "defaultValue": "5000"
+    },
+    "BUZZ_PAIR_RELAY_BIND_ADDR": {
+     "isOptional": false,
+     "description": "",
+     "defaultValue": "0.0.0.0:${{PORT}}"
+    }
+   }
+  },
+  "ec5da0f4-852d-4f0c-9bb3-94fad1e713f9": {
+   "icon": "https://hmseeb.github.io/buzz-railway/minio-wordmark.png",
+   "name": "MinIO",
+   "deploy": {
+    "startCommand": null,
+    "healthcheckPath": null,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+   },
+   "source": {
+    "image": "ghcr.io/hmseeb/buzz-railway-minio:latest"
+   },
+   "variables": {
+    "PORT": {
+     "isOptional": false,
+     "defaultValue": "9000"
+    },
+    "MINIO_ROOT_PASSWORD": {
+     "isOptional": false,
+     "defaultValue": "${{secret(32)}}"
+    }
+   }
+  }
+ }
+}
