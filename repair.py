@@ -85,12 +85,15 @@ def main():
     if "--dry-run" in sys.argv:
         print(json.dumps(config, indent=1))
         return
+    # An empty canvas wipes the template's saved layout, so pass the live one back.
+    canvas = rw.gql("query($c: String!) { template(code: $c) { canvasConfig } }",
+                    {"c": CODE})["template"]["canvasConfig"]
     saved = rw.gql(
         """mutation($id: String!, $input: TemplateUpsertConfigInput!) {
              templateUpsertConfig(id: $id, input: $input) { id code }
            }""",
         {"id": TEMPLATE_ID, "input": {"name": NAME, "workspaceId": WORKSPACE,
-                                      "serializedConfig": config, "canvasConfig": {}}},
+                                      "serializedConfig": config, "canvasConfig": canvas}},
         internal=True,
     )["templateUpsertConfig"]
     print(f"saved  id {saved['id']}  code {saved['code']}")
