@@ -1,7 +1,7 @@
 # Thin wrapper over the upstream Buzz relay that resolves the relay owner at
-# boot. Pinned by digest because upstream publishes no semver tags to GHCR —
-# only :main, :latest and :sha-<7> — so a floating tag would ship whatever
-# landed on main that morning to everyone who clicks Deploy.
+# boot. Pinned to an upstream relay release (relay-vX.Y.Z tags, published to
+# GHCR as :X.Y.Z and :latest), tag plus digest, so a rebuild never picks up
+# whatever landed on :main that morning.
 #
 # Compile the community-creation helper. It signs the relay's operator request,
 # which needs a real crypto library, so it can't live in the shell boot script.
@@ -10,12 +10,14 @@ WORKDIR /build
 COPY provision/ .
 RUN cargo build --release && strip target/release/buzz-provision
 
-# digest = ghcr.io/block/buzz:main as of 2026-11-09
-FROM ghcr.io/block/buzz@sha256:b7c63ac249113bcce173ab0d394902d0717bb3a1362a0a5ce258acd59f51dfab
+# Buzz Relay 0.3.0 (relay-v0.3.0, 2026-11-11)
+FROM ghcr.io/block/buzz:0.3.0@sha256:84f34c5b801192665b1a05939518d746f25184babf4d6e927d0de7e12e9c5674
 
 # Without this the image inherits upstream's source label and GHCR attributes
-# the package to block/buzz rather than to this repo.
+# the package to block/buzz rather than to this repo. CI publishes the image
+# as :<version>; bump -rN for a rebuild of the same upstream release.
 LABEL org.opencontainers.image.title="Buzz for Railway" \
+      org.opencontainers.image.version="0.3.0-r1" \
       org.opencontainers.image.description="Buzz relay packaged for one-click Railway deploys" \
       org.opencontainers.image.source="https://github.com/hmseeb/buzz-railway"
 

@@ -19,7 +19,11 @@ LISTEN_PORT="${PORT:-9000}"
 export MC_CONFIG_DIR=/tmp/.mc
 
 mkdir -p "$DATA"
-minio server "$DATA" --address ":$LISTEN_PORT" &
+# The pgsty fork renamed its server binary from minio to silo on 2026-08-06
+# (same S3 protocol, same on-disk format). Prefer silo, fall back to minio.
+SERVER=silo
+command -v silo >/dev/null 2>&1 || SERVER=minio
+"$SERVER" server "$DATA" --address ":$LISTEN_PORT" &
 MINIO_PID=$!
 
 attempt=0

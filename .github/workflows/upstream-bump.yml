@@ -2,7 +2,7 @@ name: upstream-bump
 
 on:
   schedule:
-    - cron: '17 6 * * 1'  # weekly is enough churn; upstream ships ~daily
+    - cron: '17 6 * * 1'  # weekly; upstream cuts relay releases every few weeks
   workflow_dispatch:
 
 permissions:
@@ -15,42 +15,53 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # .Manifest.Digest is the multi-arch index digest — the same value
-      # docker pull resolves, so it is what FROM must pin.
-      - name: Resolve upstream digest
+      # Track relay releases, not :main. Upstream moves :latest only on a
+      # relay-vX.Y.Z release and labels the image with that version.
+      # .Manifest.Digest is the multi-arch index digest, the same value docker
+      # pull resolves, so it is what FROM must pin.
+      - name: Resolve upstream release
         id: d
         run: |
-          new=$(docker buildx imagetools inspect ghcr.io/block/buzz:main --format '{{.Manifest.Digest}}')
-          old=$(grep -oE 'sha256:[0-9a-f]{64}' Dockerfile)
-          echo "new=$new" >> "$GITHUB_OUTPUT"
+          digest=$(docker buildx imagetools inspect ghcr.io/block/buzz:latest --format '{{.Manifest.Digest}}')
+          version=$(docker buildx imagetools inspect ghcr.io/block/buzz:latest --format '{{json .Image}}' \
+            | jq -r '(."linux/amd64" // .).config.Labels."org.opencontainers.image.version"')
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "unexpected upstream version: $version"; exit 1; }
+          # Confirm :<version> is the same image, so FROM can name both.
+          [ "$(docker buildx imagetools inspect ghcr.io/block/buzz:$version --format '{{.Manifest.Digest}}')" = "$digest" ]
+          old=$(grep -E '^FROM ghcr.io/block/buzz' Dockerfile | awk '{print $2}')
+          new="ghcr.io/block/buzz:$version@$digest"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "old=$old" >> "$GITHUB_OUTPUT"
+          echo "new=$new" >> "$GITHUB_OUTPUT"
           echo "changed=$([ "$new" != "$old" ] && echo true || echo false)" >> "$GITHUB_OUTPUT"
 
       - name: Update Dockerfile
         if: steps.d.outputs.changed == 'true'
         run: |
-          sed -i 's|${{ steps.d.outputs.old }}|${{ steps.d.outputs.new }}|' Dockerfile
-          sed -i "s|:main as of [0-9-]*|:main as of $(date -u +%F)|" Dockerfile
+          sed -i 's|^FROM ${{ steps.d.outputs.old }}|FROM ${{ steps.d.outputs.new }}|' Dockerfile
+          sed -i 's|^# Buzz Relay .*|# Buzz Relay ${{ steps.d.outputs.version }} (relay-v${{ steps.d.outputs.version }})|' Dockerfile
+          sed -i 's|org.opencontainers.image.version="[^"]*"|org.opencontainers.image.version="${{ steps.d.outputs.version }}-r1"|' Dockerfile
 
-      # PRs opened with GITHUB_TOKEN trigger no workflows, so this test — not
-      # PR CI — is the gate on the new digest. A red run here means upstream
-      # broke the boot contract; no PR is opened.
+      # PRs opened with GITHUB_TOKEN trigger no workflows, so this test, not
+      # PR CI, is the gate on the new release. A red run here means upstream
+      # broke the boot contract; no PR is opened. After merge, also bump the
+      # image tags in railway.template.json and republish the template.
       - name: Contract test
         if: steps.d.outputs.changed == 'true'
         run: |
+          ./test/version_test.sh Dockerfile
           docker build -t buzz-railway:test .
           ./test/boot_test.sh buzz-railway:test
 
       - uses: peter-evans/create-pull-request@v7
         if: steps.d.outputs.changed == 'true'
         with:
-          # not `upstream-digest` — that branch exists on the remote and this
-          # action force-pushes its branch on every new digest
-          branch: bump/buzz-digest
+          branch: bump/buzz-release
           delete-branch: true
-          commit-message: 'Bump ghcr.io/block/buzz digest to ${{ steps.d.outputs.new }}'
-          title: Bump upstream buzz digest
+          commit-message: 'Bump Buzz Relay to ${{ steps.d.outputs.version }}'
+          title: Bump Buzz Relay to ${{ steps.d.outputs.version }}
           body: |
             `${{ steps.d.outputs.old }}` → `${{ steps.d.outputs.new }}`
 
             Contract test passed in the bump run (PRs from GITHUB_TOKEN get no CI).
+            After merge, set the template's image tags to `${{ steps.d.outputs.version }}-r1` and republish.

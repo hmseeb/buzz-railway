@@ -28,9 +28,9 @@ which normally means a VPS, a Docker Compose file, TLS certificates, and a
 backup plan. Railway provisions and networks all of it in one click, hands you
 HTTPS and a domain, and takes daily database backups.
 
-The relay image here is pinned to a tested upstream digest rather than a moving
-tag, so a deploy today behaves the same as a deploy last week — Buzz itself
-ships roughly daily.
+The relay image here is pinned to a tested Buzz Relay release (0.3.0) rather
+than a moving tag, so a deploy today behaves the same as a deploy last week,
+even though Buzz itself ships roughly daily.
 
 ## Common Use Cases
 
@@ -114,8 +114,8 @@ three per owner.
 app needs a small helper service that older deploys don't have — template
 updates don't reach projects that are already deployed, so add it once by hand:
 
-1. In your project, add a new service from the Docker image
-   `ghcr.io/hmseeb/buzz-railway:latest`, set its start command to
+1. In your project, add a new service from the same Docker image your Buzz
+   service runs (for example `ghcr.io/hmseeb/buzz-railway:0.3.0-r1`), set its start command to
    `buzz-pair-relay`, add a variable `BUZZ_PAIR_RELAY_BIND_ADDR` set to
    `0.0.0.0:5000`, and generate a public domain for it targeting port 5000.
 2. On the Buzz service, add a variable `BUZZ_PAIRING_RELAY_URL` set to `wss://`

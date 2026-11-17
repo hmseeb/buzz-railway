@@ -43,16 +43,22 @@ falling back to a `/pair` path nothing serves.
 
 ## Pinning
 
-Upstream publishes no semver tags to GHCR — only `:main`, `:latest` and
-`:sha-<7>` — and ships roughly daily. The wrapper pins upstream by digest so a
-deploy is reproducible, and the digest moves when it is tested, not whenever
-main does.
+Upstream cuts Buzz Relay releases (`relay-vX.Y.Z`, published to GHCR as
+`:X.Y.Z` and `:latest`) every few weeks, while `:main` moves daily. The wrapper
+pins a relay release by tag and digest. Images are published as
+`:<upstream>-r<N>` (for example `buzz-railway:0.3.0-r1`), read from the
+Dockerfile's `org.opencontainers.image.version` label, and the template pins
+that tag. MinIO is the maintained `pgsty/silo` fork, pinned to a release the same
+way. A weekly job opens a PR when a new relay release appears.
 
 ## Running the test
 
 ```bash
 docker build -t buzz-railway:test .
 ./test/boot_test.sh
+docker build -f Dockerfile.minio -t buzz-railway-minio:test .
+./test/minio_test.sh
+./test/version_test.sh
 ```
 
 Needs Docker. Takes about a minute.

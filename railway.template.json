@@ -7,7 +7,7 @@
       "name": "Buzz",
       "icon": "https://hmseeb.github.io/buzz-railway/buzz-icon.png",
       "source": {
-        "image": "ghcr.io/hmseeb/buzz-railway:latest"
+        "image": "ghcr.io/hmseeb/buzz-railway:0.3.0-r1"
       },
       "deploy": {
         "healthcheckPath": "/_readiness",
@@ -79,7 +79,7 @@
       "name": "Pairing",
       "icon": "https://hmseeb.github.io/buzz-railway/buzz-icon.png",
       "source": {
-        "image": "ghcr.io/hmseeb/buzz-railway:latest"
+        "image": "ghcr.io/hmseeb/buzz-railway:0.3.0-r1"
       },
       "deploy": {
         "startCommand": "buzz-pair-relay",
@@ -105,7 +105,7 @@
     "postgres": {
       "name": "Postgres",
       "source": {
-        "image": "ghcr.io/railwayapp-templates/postgres-ssl:17"
+        "image": "ghcr.io/railwayapp-templates/postgres-ssl:18"
       },
       "deploy": {
         "restartPolicyType": "ON_FAILURE",
@@ -142,7 +142,7 @@
     "redis": {
       "name": "Redis",
       "source": {
-        "image": "redis:8-alpine"
+        "image": "redis:8.10.3"
       },
       "deploy": {
         "startCommand": "/bin/sh -c \"rm -rf $RAILWAY_VOLUME_MOUNT_PATH/lost+found && exec redis-server --requirepass $REDIS_PASSWORD --appendonly yes --dir $RAILWAY_VOLUME_MOUNT_PATH\"",
@@ -170,7 +170,7 @@
       "name": "MinIO",
       "icon": "https://hmseeb.github.io/buzz-railway/minio-icon.png",
       "source": {
-        "image": "ghcr.io/hmseeb/buzz-railway-minio:latest"
+        "image": "ghcr.io/hmseeb/buzz-railway-minio:RELEASE.2026-11-12T00-00-00Z-r1"
       },
       "deploy": {
         "healthcheckPath": "/minio/health/live",
